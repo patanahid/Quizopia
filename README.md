@@ -1,69 +1,92 @@
-# Welcome to your Lovable project
+# Quizopia - Modern Quiz Application
 
-## Project info
+Quizopia is a feature-rich quiz application built with React and TypeScript, offering a seamless experience for creating, taking, and managing quizzes.
 
-**URL**: https://lovable.dev/projects/77383f49-ce4f-49a5-8602-fa03f4179a97
+## Features
 
-## How can I edit this code?
+### Quiz Taking
+- **Save & Resume**: Save your quiz progress and resume later
+- **Timer**: Built-in timer with pause/resume functionality
+- **Question Navigation**: Easily navigate between questions
+- **Mark for Review**: Flag questions to review later
+- **Progress Tracking**: Visual progress indicator
+- **Instant Results**: Get detailed results upon completion
 
-There are several ways of editing your application.
+### Quiz Management
+- **Create & Edit**: Create new quizzes or edit existing ones
+- **Rich Text Support**: Questions support Markdown formatting
+- **Time Limits**: Set custom time limits for quizzes
+- **Question Types**: Support for multiple-choice questions
+- **Quiz Settings**: Configure shuffle and time limit options
 
-**Use Lovable**
+### User Interface
+- **Dark/Light Mode**: Toggle between dark and light themes
+- **Responsive Design**: Works on desktop and mobile devices
+- **Modern UI**: Built with shadcn/ui components
+- **Toast Notifications**: Informative feedback messages
+- **Confirmation Dialogs**: Prevent accidental actions
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/77383f49-ce4f-49a5-8602-fa03f4179a97) and start prompting.
+### Data Management
+- **Local Storage**: All quizzes and progress saved locally
+- **Progress Persistence**: Auto-save feature prevents data loss
+- **Clear Progress**: Option to clear saved progress
+- **JSON Import/Export**: Share quizzes via JSON format
 
-Changes made via Lovable will be committed automatically to this repo.
+## Tech Stack
 
-**Use your preferred IDE**
+- **React**: Frontend framework
+- **TypeScript**: Type-safe development
+- **Vite**: Build tool and dev server
+- **Tailwind CSS**: Utility-first styling
+- **shadcn/ui**: UI component library
+- **React Router**: Navigation and routing
+- **Sonner**: Toast notifications
+- **React Markdown**: Markdown rendering
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## Getting Started
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+1. Clone the repository:
+   ```bash
+   git clone <repository-url>
+   ```
 
-Follow these steps:
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+3. Start the development server:
+   ```bash
+   npm run dev
+   ```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+4. Open http://localhost:5173 in your browser
 
-# Step 3: Install the necessary dependencies.
-npm i
+## Usage
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+### Taking a Quiz
+1. Select a quiz from the home page
+2. Click "Start Quiz" to begin
+3. Answer questions and use navigation buttons
+4. Use "Save & Exit" to save progress
+5. Resume from where you left off later
 
-**Edit a file directly in GitHub**
+### Creating a Quiz
+1. Click "Create Quiz" on the home page
+2. Fill in quiz details and questions
+3. Set time limit and other settings
+4. Save the quiz
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Managing Quizzes
+- Edit existing quizzes
+- Delete unwanted quizzes
+- Clear saved progress
+- Import/Export quiz data
 
-**Use GitHub Codespaces**
+## Contributing
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-## What technologies are used for this project?
+## License
 
-This project is built with .
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/77383f49-ce4f-49a5-8602-fa03f4179a97) and click on Share -> Publish.
-
-## I want to use a custom domain - is that possible?
-
-We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
+This project is licensed under the MIT License - see the LICENSE file for details.
