@@ -197,6 +197,36 @@ export function EditQuiz({ id, quizzes, setQuizzes, editQuiz }: EditQuizProps) {
 
   return (
     <div className="container mx-auto p-4 max-w-4xl space-y-8 animate-fade-in">
+      <div className="flex items-center justify-between gap-4 mb-6">
+        <div className="flex items-center gap-2">
+          <Button onClick={handleSave} className="bg-primary">
+            {id ? "Save Changes" : "Create Quiz"}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => {
+              const newSampleQuiz = {
+                ...sampleQuiz,
+                id: id || "",
+                questions: sampleQuiz.questions.map(q => ({
+                  ...q,
+                  id: uuidv4(),
+                  choices: q.choices?.map(c => ({ ...c }))
+                }))
+              };
+              setQuiz(newSampleQuiz);
+              setDesiredQuestionCount(newSampleQuiz.questions.length);
+              toast.success("Sample quiz loaded");
+            }}
+          >
+            Load Sample Quiz
+          </Button>
+        </div>
+        <Button variant="outline" onClick={() => navigate("/")}>
+          Cancel
+        </Button>
+      </div>
+
       <Card className="p-6">
         <div className="space-y-4">
           <div className="space-y-2">
@@ -432,11 +462,10 @@ export function EditQuiz({ id, quizzes, setQuizzes, editQuiz }: EditQuizProps) {
         </Button>
       </div>
 
-      <div className="flex justify-end gap-4">
+      <div className="flex justify-end gap-4 mt-8">
         <Button variant="outline" onClick={() => navigate("/")}>
           Cancel
         </Button>
-        <Button onClick={handleSave}>Save Quiz</Button>
       </div>
 
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
