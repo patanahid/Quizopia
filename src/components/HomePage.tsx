@@ -162,7 +162,7 @@ export function HomePage({ quizzes, setQuizzes }: HomePageProps) {
                   <p className="text-muted-foreground mb-4">{quiz.description}</p>
                   <div className="flex flex-col md:flex-row gap-2 mt-4">
                     <Button
-                      variant="outline"
+                      variant="default"
                       size="sm"
                       onClick={() => navigate(`/quiz/${quiz.id}`)}
                     >
@@ -186,7 +186,7 @@ export function HomePage({ quizzes, setQuizzes }: HomePageProps) {
                     </Button>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <Button variant="outline" size="sm">
+                        <Button variant="destructive" size="sm" about="">
                           Delete
                         </Button>
                       </AlertDialogTrigger>
@@ -199,7 +199,7 @@ export function HomePage({ quizzes, setQuizzes }: HomePageProps) {
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => handleDelete(quiz.id)}>
+                          <AlertDialogAction color="red" onClick={() => handleDelete(quiz.id)}>
                             Delete
                           </AlertDialogAction>
                         </AlertDialogFooter>
