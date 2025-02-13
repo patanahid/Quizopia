@@ -9,8 +9,6 @@ import rehypeRaw from "rehype-raw";
 import type { Components } from "react-markdown";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 
 const markdownComponents: Components = {
   pre: ({ children }) => (
@@ -47,26 +45,36 @@ export function Results({ quiz, state, onRetry }: ResultsProps) {
   if (!state) return null;
 
   const calculateScore = () => {
-    let score = 0;
+    let totalScore = 0;
+    let correctAnswers = 0;
+    let wrongAnswers = 0;
+    let notAttempted = 0;
+
     quiz.questions.forEach((question) => {
       const userAnswer = state.answers[question.id];
-      if (!userAnswer) return; // No negative marking for unattempted questions
-      if (userAnswer === question.correctAnswer) {
-        score += 1;
+      if (!userAnswer) {
+        notAttempted++;
+      } else if (userAnswer === question.correctAnswer) {
+        correctAnswers++;
+        totalScore += 1;
       } else {
-        score -= negativeMarks;
+        wrongAnswers++;
+        totalScore -= negativeMarks;
       }
     });
-    return Math.max(0, score); // Ensure score doesn't go below 0
+
+    return {
+      totalScore: Math.max(0, totalScore),
+      correctAnswers,
+      wrongAnswers,
+      notAttempted,
+      marksGained: correctAnswers,
+      marksDeducted: wrongAnswers * negativeMarks
+    };
   };
 
-  const score = calculateScore();
-  const totalQuestions = quiz.questions.length;
-  const attemptedQuestions = Object.keys(state.answers).length;
-  const correctAnswers = quiz.questions.reduce((count, question) => 
-    state.answers[question.id] === question.correctAnswer ? count + 1 : count, 0);
-  const wrongAnswers = attemptedQuestions - correctAnswers;
-  const percentage = Math.round((score / totalQuestions) * 100);
+  const scoreDetails = calculateScore();
+  const percentage = Math.round((scoreDetails.totalScore / quiz.questions.length) * 100);
   const timeTaken = quiz.settings.timeLimit - state.timeRemaining;
 
   const formatTime = (seconds: number) => {
@@ -87,150 +95,151 @@ export function Results({ quiz, state, onRetry }: ResultsProps) {
   return (
     <div className="container mx-auto p-4 max-w-4xl space-y-8 animate-fade-in">
       <Card className="p-6 bg-card text-card-foreground">
-        <div className="space-y-6">
-          <div className="flex items-end gap-4">
-            <div className="flex-1">
-              <Label htmlFor="negative-marks">Negative Marks per Wrong Answer</Label>
-              <Input
-                id="negative-marks"
-                type="number"
-                min="0"
-                max="1"
-                step="0.25"
-                value={negativeMarks}
-                onChange={(e) => setNegativeMarks(Number(e.target.value))}
-                className="max-w-[200px]"
-              />
-            </div>
-            <Button variant="outline" onClick={() => setNegativeMarks(0)}>Reset</Button>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium text-muted-foreground">Final Score</h3>
+            <p className="text-2xl font-bold text-foreground">{percentage}%</p>
+            <p className="text-sm text-muted-foreground">
+              ({scoreDetails.totalScore.toFixed(2)} / {quiz.questions.length})
+            </p>
           </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <h3 className="text-sm font-medium text-muted-foreground">Score</h3>
-              <div>
-                <p className="text-2xl font-bold text-foreground">{score.toFixed(2)}</p>
-                <p className="text-sm text-muted-foreground">({percentage}%)</p>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <h3 className="text-sm font-medium text-muted-foreground">Correct Answers</h3>
-              <div>
-                <p className="text-2xl font-bold text-foreground">{correctAnswers}</p>
-                <p className="text-sm text-muted-foreground">+{correctAnswers} marks</p>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <h3 className="text-sm font-medium text-muted-foreground">Wrong Answers</h3>
-              <div>
-                <p className="text-2xl font-bold text-foreground">{wrongAnswers}</p>
-                <p className="text-sm text-muted-foreground">
-                  {negativeMarks > 0 ? `-${(wrongAnswers * negativeMarks).toFixed(2)} marks` : "no penalty"}
-                </p>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <h3 className="text-sm font-medium text-muted-foreground">Not Attempted</h3>
-              <div>
-                <p className="text-2xl font-bold text-foreground">{totalQuestions - attemptedQuestions}</p>
-                <p className="text-sm text-muted-foreground">no penalty</p>
-              </div>
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium text-muted-foreground">
+              Score Breakdown
+            </h3>
+            <div className="text-sm">
+              <p> Correct: {scoreDetails.correctAnswers} (+{scoreDetails.marksGained})</p>
+              <p> Wrong: {scoreDetails.wrongAnswers} (-{scoreDetails.marksDeducted})</p>
+              <p> Not Attempted: {scoreDetails.notAttempted}</p>
             </div>
           </div>
-
-          <div className="border-t pt-4">
-            <div className="text-sm text-muted-foreground">
-              Scoring: +1 for correct, -{negativeMarks} for wrong, 0 for not attempted
-            </div>
-            <div className="text-sm text-muted-foreground">
-              Time Taken: {formatTime(timeTaken)}
-            </div>
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium text-muted-foreground">
+              Time Taken
+            </h3>
+            <p className="text-2xl font-bold text-foreground">{formatTime(timeTaken)}</p>
           </div>
+        </div>
+        <div className="mt-4 pt-4 border-t">
+          <label className="block text-sm font-medium text-muted-foreground mb-2">
+            Negative Marking (per wrong answer)
+          </label>
+          <input
+            type="number"
+            min="0"
+            max="1"
+            step="0.25"
+            value={negativeMarks}
+            onChange={(e) => setNegativeMarks(Number(e.target.value))}
+            className="w-24 px-3 py-1 border rounded-md"
+          />
         </div>
       </Card>
 
       <div className="space-y-6">
         {quiz.questions.map((question, index) => {
-          const userAnswer = state.answers[question.id];
-          const isCorrect = userAnswer === question.correctAnswer;
+          const isCorrect = state.answers[question.id] === question.correctAnswer;
           const selectedAnswer = question.choices?.find(
-            (choice) => choice.id === userAnswer
+            (choice) => choice.id === state.answers[question.id]
           );
-          const correctAnswerText = question.choices?.find(
+          const correctAnswer = question.choices?.find(
             (choice) => choice.id === question.correctAnswer
-          )?.text;
+          );
 
           return (
-            <Card key={question.id} className="p-6">
+            <Card key={question.id} className="p-6 bg-card text-card-foreground">
               <div className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <div className="mt-1">
-                    {userAnswer ? (
-                      isCorrect ? (
-                        <CheckCircle2 className="w-5 h-5 text-green-500" />
-                      ) : (
-                        <XCircle className="w-5 h-5 text-red-500" />
-                      )
-                    ) : (
-                      <div className="w-5 h-5 rounded-full border-2 border-muted-foreground" />
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <div className="prose dark:prose-invert max-w-none mb-4">
-                      <Markdown
-                        remarkPlugins={[remarkGfm]}
-                        rehypePlugins={[rehypeRaw]}
-                        components={markdownComponents}
-                      >
-                        {`${index + 1}. ${question.text}`}
-                      </Markdown>
-                    </div>
-
-                    {userAnswer && (
-                      <div className="space-y-2">
-                        <div className="text-sm text-muted-foreground">Your answer:</div>
-                        <div className={cn(
-                          "prose dark:prose-invert max-w-none p-3 rounded-lg",
-                          isCorrect ? "bg-green-500/10" : "bg-red-500/10"
-                        )}>
-                          <Markdown
-                            remarkPlugins={[remarkGfm]}
-                            rehypePlugins={[rehypeRaw]}
-                            components={markdownComponents}
-                          >
-                            {selectedAnswer?.text}
-                          </Markdown>
-                        </div>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-foreground">
+                    Question {index + 1}
+                  </h3>
+                  <div className="flex items-center space-x-2">
+                    {isCorrect ? (
+                      <div className="flex items-center text-green-500 dark:text-green-400">
+                        <CheckCircle2 className="h-5 w-5 mr-1" />
+                        <span className="text-sm font-medium">Correct</span>
                       </div>
-                    )}
-
-                    {!isCorrect && (
-                      <div className="space-y-2 mt-4">
-                        <div className="text-sm text-muted-foreground">Correct answer:</div>
-                        <div className="prose dark:prose-invert max-w-none p-3 rounded-lg bg-green-500/10">
-                          <Markdown
-                            remarkPlugins={[remarkGfm]}
-                            rehypePlugins={[rehypeRaw]}
-                            components={markdownComponents}
-                          >
-                            {correctAnswerText}
-                          </Markdown>
-                        </div>
+                    ) : (
+                      <div className="flex items-center text-destructive">
+                        <XCircle className="h-5 w-5 mr-1" />
+                        <span className="text-sm font-medium">Incorrect</span>
                       </div>
                     )}
                   </div>
                 </div>
+
+                <div className="prose dark:prose-invert max-w-none">
+                  <Markdown 
+                    remarkPlugins={[remarkGfm]} 
+                    rehypePlugins={[rehypeRaw]}
+                    components={markdownComponents}
+                  >
+                    {question.text}
+                  </Markdown>
+                </div>
+
+                <div className="space-y-3">
+                  {question.choices.map((choice, choiceIndex) => {
+                    const isSelected = state.answers[question.id] === choice.id;
+                    const isCorrectChoice = choice.id === question.correctAnswer;
+                    const choiceLabel = String.fromCharCode(65 + choiceIndex); // Convert 0 -> A, 1 -> B, etc.
+                    
+                    return (
+                      <div
+                        key={choice.id}
+                        className={cn(
+                          "p-2 sm:p-3 rounded-lg border transition-colors",
+                          {
+                            "border-green-500 bg-green-50 dark:bg-green-900/20": isCorrectChoice,
+                            "border-destructive bg-destructive/10": isSelected && !isCorrectChoice,
+                            "hover:bg-accent/10": !isSelected && !isCorrectChoice,
+                          }
+                        )}
+                      >
+                        <div className="flex items-start space-x-2 sm:space-x-3">
+                          <div className="flex items-center space-x-1 sm:space-x-2">
+                            <span className="font-medium text-foreground min-w-[1.25rem] sm:min-w-[1.5rem]">
+                              {choiceLabel})
+                            </span>
+                          </div>
+                          <div className="prose dark:prose-invert flex-1">
+                            <Markdown 
+                              remarkPlugins={[remarkGfm]} 
+                              rehypePlugins={[rehypeRaw]}
+                              components={markdownComponents}
+                            >
+                              {choice.text}
+                            </Markdown>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {question.explanation && (
+                  <div className="mt-4 p-4 rounded-lg bg-muted text-muted-foreground border">
+                    <h4 className="font-semibold mb-2 text-foreground">Explanation:</h4>
+                    <div className="prose dark:prose-invert">
+                      <Markdown 
+                        remarkPlugins={[remarkGfm]} 
+                        rehypePlugins={[rehypeRaw]}
+                        components={markdownComponents}
+                      >
+                        {question.explanation}
+                      </Markdown>
+                    </div>
+                  </div>
+                )}
               </div>
             </Card>
           );
         })}
       </div>
 
-      <div className="flex gap-4">
-        <Button onClick={onRetry}>Try Again</Button>
-        <Button variant="outline" onClick={() => navigate("/")}>
-          Back to Home
-        </Button>
+      <div className="flex justify-center gap-4">
+        <Button onClick={onRetry} variant="outline">Retry Quiz</Button>
+        <Button onClick={() => navigate("/")}>Back to Home</Button>
       </div>
     </div>
   );
