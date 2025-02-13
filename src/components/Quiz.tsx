@@ -349,25 +349,36 @@ export function Quiz({ quiz, onComplete, onStateUpdate, initialState }: QuizProp
 
               <div className="space-y-4">
                 {currentQuestion.choices.map((choice) => (
-                  <label
+                  <div
                     key={choice.id}
+                    onClick={() => handleAnswer(choice.id)}
                     className={cn(
-                      "flex items-start space-x-3 p-4 rounded-lg border cursor-pointer",
+                      "flex items-start space-x-3 p-4 rounded-lg border cursor-pointer transition-colors",
                       {
                         "bg-primary/5 border-primary": state.answers[currentQuestion.id] === choice.id,
                         "hover:bg-muted": state.answers[currentQuestion.id] !== choice.id,
                       }
                     )}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleAnswer(choice.id);
+                      }
+                    }}
                   >
-                    <input
-                      type="radio"
-                      name="answer"
-                      value={choice.id}
-                      checked={state.answers[currentQuestion.id] === choice.id}
-                      onChange={() => handleAnswer(choice.id)}
-                      className="mt-1"
-                    />
-                    <div className="prose dark:prose-invert flex-1">
+                    <div className={cn(
+                      "w-4 h-4 mt-1 rounded-full border-2 flex-shrink-0",
+                      state.answers[currentQuestion.id] === choice.id
+                        ? "border-primary bg-primary"
+                        : "border-muted-foreground"
+                    )}>
+                      {state.answers[currentQuestion.id] === choice.id && (
+                        <div className="w-2 h-2 m-0.5 rounded-full bg-white" />
+                      )}
+                    </div>
+                    <div className="prose dark:prose-invert flex-1 [&>p]:m-0">
                       <Markdown
                         remarkPlugins={[remarkGfm]}
                         rehypePlugins={[rehypeRaw]}
@@ -377,7 +388,7 @@ export function Quiz({ quiz, onComplete, onStateUpdate, initialState }: QuizProp
                         {choice.text}
                       </Markdown>
                     </div>
-                  </label>
+                  </div>
                 ))}
               </div>
             </div>
