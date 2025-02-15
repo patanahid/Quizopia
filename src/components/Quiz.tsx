@@ -5,7 +5,7 @@ import Timer from "./Timer";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { ArrowLeft, ArrowRight, BookmarkPlus } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookmarkPlus, Save } from "lucide-react";
 import { toast } from "sonner";
 import { QuizProgress } from "./QuizProgress";
 import { Results } from "./Results";
@@ -17,14 +17,18 @@ import type { Components } from "react-markdown";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
+import { CodeBlock } from "@/components/ui/code-block";
+import { useSaveSystem } from "@/hooks/useSaveSystem";
+import { SaveSlotDialog } from "./SaveSlotDialog";
 
 const markdownComponents: Components = {
   pre: ({ children }) => (
-    <pre className="p-4 bg-muted rounded-lg overflow-x-auto">
-      {children}
-    </pre>
+    <CodeBlock 
+      code={String(children)}
+      language={children?.toString().match(/^```(\w+)/)?.[1] || undefined}
+    />
   ),
-  code: ({ className, children, ...props }) => {
+  code: ({ node, className, children, ...props }) => {
     const match = /language-(\w+)/.exec(className || "");
     const isInline = !match && !className;
     return (
@@ -51,14 +55,41 @@ export function Quiz({ quiz, onComplete, onStateUpdate, initialState }: QuizProp
   const navigate = useNavigate();
   const [showResults, setShowResults] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
-  const [showResumeDialog, setShowResumeDialog] = useState(false);
+  const [showLoadDialog, setShowLoadDialog] = useState(false);
+
+  const { 
+    saveSlots, 
+    createSave, 
+    deleteSave, 
+    loadSave, 
+    setupAutosave 
+  } = useSaveSystem({ 
+    quizId: quiz.id,
+    autoSaveInterval: 30000, // 30 seconds
+    maxManualSlots: 3
+  });
 
   const [state, setState] = useState<QuizState>(() => {
-    const savedQuiz = localStorage.getItem(`quiz-${quiz.id}-save`);
-    if (savedQuiz) {
-      return JSON.parse(savedQuiz);
+    if (initialState) return initialState;
+
+    // Check for autosave first
+    const autosave = saveSlots.find(slot => slot.isAutosave);
+    if (autosave) {
+      setShowLoadDialog(true);
+      return {
+        currentQuestionIndex: 0,
+        answers: {},
+        markedForReview: [],
+        timeRemaining: quiz.settings.timeLimit,
+        isPaused: true,
+        startTime: Date.now(),
+        totalPausedTime: 0,
+        isComplete: false
+      };
     }
-    return initialState || {
+
+    // Return fresh state if no saves found
+    return {
       currentQuestionIndex: 0,
       answers: {},
       markedForReview: [],
@@ -66,18 +97,23 @@ export function Quiz({ quiz, onComplete, onStateUpdate, initialState }: QuizProp
       isPaused: true,
       startTime: Date.now(),
       totalPausedTime: 0,
+      isComplete: false
     };
   });
 
+  // Setup autosave
   useEffect(() => {
-    const savedQuiz = localStorage.getItem(`quiz-${quiz.id}-save`);
-    if (savedQuiz && !initialState) {
-      setShowResumeDialog(true);
+    if (!state.isComplete) {
+      return setupAutosave(state);
     }
-  }, [quiz.id, initialState]);
+  }, [state, setupAutosave]);
+
+  // Update parent component
+  useEffect(() => {
+    onStateUpdate?.(state);
+  }, [state, onStateUpdate]);
 
   const handleStartNew = () => {
-    localStorage.removeItem(`quiz-${quiz.id}-save`);
     setState({
       currentQuestionIndex: 0,
       answers: {},
@@ -86,22 +122,11 @@ export function Quiz({ quiz, onComplete, onStateUpdate, initialState }: QuizProp
       isPaused: true,
       startTime: Date.now(),
       totalPausedTime: 0,
+      isComplete: false
     });
-    setShowResumeDialog(false);
+    setShowLoadDialog(false);
     toast.success("Starting fresh quiz attempt!");
   };
-
-  const handleResume = () => {
-    const savedQuiz = localStorage.getItem(`quiz-${quiz.id}-save`);
-    if (savedQuiz) {
-      const savedState = JSON.parse(savedQuiz);
-      setState(savedState);
-      toast.success("Quiz resumed from saved progress!");
-    }
-    setShowResumeDialog(false);
-  };
-
-  const currentQuestion = quiz.questions[state.currentQuestionIndex];
 
   const getQuestionStatus = (questionId: string) => {
     if (state.markedForReview.includes(questionId)) return "review";
@@ -184,25 +209,18 @@ export function Quiz({ quiz, onComplete, onStateUpdate, initialState }: QuizProp
   };
 
   const handleTimeUp = () => {
-    const now = Date.now();
-    const totalTime = now - state.startTime;
-    const actualTimeTaken = Math.floor((totalTime - state.totalPausedTime) / 1000);
-
     setState((prev) => ({
       ...prev,
       isPaused: true,
       timeRemaining: 0,
+      isComplete: true
     }));
 
     setShowResults(true);
-
     toast.success("Time's up!");
   };
 
   const handleComplete = () => {
-    const now = Date.now();
-    const totalTime = now - state.startTime;
-    const actualTimeTaken = Math.floor((totalTime - state.totalPausedTime) / 1000);
     setShowResults(true);
   };
 
@@ -211,6 +229,7 @@ export function Quiz({ quiz, onComplete, onStateUpdate, initialState }: QuizProp
       ...state,
       timeRemaining: 0,
       isPaused: true,
+      isComplete: true
     });
     setShowResults(false);
   };
@@ -224,30 +243,29 @@ export function Quiz({ quiz, onComplete, onStateUpdate, initialState }: QuizProp
       isPaused: true,
       startTime: Date.now(),
       totalPausedTime: 0,
+      isComplete: false
     });
     setShowResults(false);
   };
 
-  const handleSaveQuiz = () => {
-    localStorage.setItem(`quiz-${quiz.id}-save`, JSON.stringify(state));
+  const handleSaveQuiz = (name: string) => {
+    createSave(state, name);
     setShowSaveDialog(false);
-    toast.success("Quiz progress saved! You can resume later.");
-    navigate("/");
+    toast.success("Quiz progress saved!");
   };
 
-  const handleClearSave = () => {
-    localStorage.removeItem(`quiz-${quiz.id}-save`);
-    setState({
-      currentQuestionIndex: 0,
-      answers: {},
-      markedForReview: [],
-      timeRemaining: quiz.settings.timeLimit,
-      isPaused: true,
-      startTime: Date.now(),
-      totalPausedTime: 0,
-    });
-    setShowResumeDialog(false);
-    toast.success("Saved progress cleared. Starting fresh!");
+  const handleLoadSave = (id: string) => {
+    const loadedState = loadSave(id);
+    if (loadedState) {
+      setState(loadedState);
+      setShowLoadDialog(false);
+      toast.success("Save loaded successfully!");
+    }
+  };
+
+  const handleDeleteSave = (id: string) => {
+    deleteSave(id);
+    toast.success("Save deleted!");
   };
 
   const formatTime = (seconds: number) => {
@@ -262,6 +280,8 @@ export function Quiz({ quiz, onComplete, onStateUpdate, initialState }: QuizProp
     
     return parts.join(' ');
   };
+
+  const currentQuestion = quiz.questions[state.currentQuestionIndex];
 
   if (showResults) {
     return (
@@ -296,7 +316,8 @@ export function Quiz({ quiz, onComplete, onStateUpdate, initialState }: QuizProp
                 size="sm"
                 onClick={() => setShowSaveDialog(true)}
               >
-                Save & Exit
+                <Save className="w-4 h-4 mr-2" />
+                Save Quiz
               </Button>
             </div>
           </div>
@@ -403,11 +424,13 @@ export function Quiz({ quiz, onComplete, onStateUpdate, initialState }: QuizProp
               <ArrowLeft className="w-4 h-4 mr-2" />
               Previous
             </Button>
-
             {state.currentQuestionIndex === quiz.questions.length - 1 ? (
-              <Button onClick={handleComplete}>Submit Quiz</Button>
+              <Button onClick={handleComplete}>
+                Complete Quiz
+              </Button>
             ) : (
               <Button
+                variant="outline"
                 onClick={() => handleNavigate(state.currentQuestionIndex + 1)}
                 disabled={state.currentQuestionIndex === quiz.questions.length - 1}
               >
@@ -419,55 +442,40 @@ export function Quiz({ quiz, onComplete, onStateUpdate, initialState }: QuizProp
         </div>
       </div>
 
-      <AlertDialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+      <SaveSlotDialog 
+        open={showSaveDialog}
+        onOpenChange={setShowSaveDialog}
+        saveSlots={saveSlots}
+        onSave={handleSaveQuiz}
+        onLoad={handleLoadSave}
+        onDelete={handleDeleteSave}
+      />
+
+      <AlertDialog open={showLoadDialog} onOpenChange={setShowLoadDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Save Quiz Progress?</AlertDialogTitle>
+            <AlertDialogTitle>Resume Previous Session?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will save your current progress and answers. You can resume the quiz later from where you left off.
+              A previous quiz session was found. Would you like to resume from where you left off?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleSaveQuiz}>
-              Save & Exit
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog 
-        open={showResumeDialog} 
-        onOpenChange={setShowResumeDialog}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Resume Saved Quiz?</AlertDialogTitle>
-            <AlertDialogDescription>
-              You have a saved quiz in progress. Would you like to resume from where you left off?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-            <Button
-              variant="outline"
-              onClick={handleClearSave}
-              className="sm:order-1"
-            >
-              Clear Save
-            </Button>
-            <Button
-              variant="outline"
-              onClick={handleStartNew}
-              className="sm:order-2"
-            >
-              Start New
-            </Button>
-            <Button
-              onClick={handleResume}
-              className="sm:order-3"
-            >
+            <AlertDialogCancel onClick={handleStartNew}>
+              Start Fresh
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={() => {
+              const autosave = saveSlots.find(slot => slot.isAutosave);
+              if (autosave) {
+                const loadedState = loadSave(autosave.id);
+                if (loadedState) {
+                  setState(loadedState);
+                  setShowLoadDialog(false);
+                  toast.success("Save loaded successfully!");
+                }
+              }
+            }}>
               Resume
-            </Button>
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
