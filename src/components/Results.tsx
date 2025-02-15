@@ -2,35 +2,23 @@ import { Quiz, QuizState } from "@/types/quiz";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { CheckCircle2, XCircle } from "lucide-react";
+import { CheckCircle2, XCircle, BookmarkCheck } from "lucide-react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import type { Components } from "react-markdown";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
+import { CodeBlock } from "@/components/ui/code-block";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-const markdownComponents: Components = {
-  pre: ({ children }) => (
-    <pre className="p-4 bg-muted rounded-lg overflow-x-auto">
-      {children}
-    </pre>
-  ),
-  code: ({ className, children, ...props }) => {
-    const match = /language-(\w+)/.exec(className || "");
-    const isInline = !match && !className;
-    return (
-      <code
-        className={`${className} ${
-          isInline ? "bg-muted px-1 py-0.5 rounded" : ""
-        }`}
-        {...props}
-      >
-        {children}
-      </code>
-    );
-  },
-};
+type FilterType = "all" | "correct" | "incorrect" | "marked" | "not-attempted";
 
 interface ResultsProps {
   quiz: Quiz;
@@ -41,6 +29,7 @@ interface ResultsProps {
 export function Results({ quiz, state, onRetry }: ResultsProps) {
   const navigate = useNavigate();
   const [negativeMarks, setNegativeMarks] = useState(0);
+  const [filter, setFilter] = useState<FilterType>("all");
 
   if (!state) return null;
 
@@ -92,6 +81,57 @@ export function Results({ quiz, state, onRetry }: ResultsProps) {
     return parts.join(', ');
   };
 
+  const results = {
+    scoreDetails,
+    percentage,
+    timeTaken
+  };
+
+  const filterQuestions = () => {
+    return quiz.questions.filter((question) => {
+      const isCorrect = state.answers[question.id] === question.correctAnswer;
+      const isMarked = state.markedForReview?.includes(question.id);
+      const isAttempted = question.id in state.answers;
+
+      switch (filter) {
+        case "correct":
+          return isCorrect;
+        case "incorrect":
+          return !isCorrect && isAttempted;
+        case "marked":
+          return isMarked;
+        case "not-attempted":
+          return !isAttempted;
+        default:
+          return true;
+      }
+    });
+  };
+
+  const filteredQuestions = filterQuestions();
+
+  const markdownComponents: Components = {
+    pre: ({ children }) => (
+      <pre className="p-4 bg-muted rounded-lg overflow-x-auto">
+        {children}
+      </pre>
+    ),
+    code: ({ className, children, ...props }) => {
+      const match = /language-(\w+)/.exec(className || "");
+      const isInline = !match && !className;
+      return (
+        <code
+          className={`${className} ${
+            isInline ? "bg-muted px-1 py-0.5 rounded" : ""
+          }`}
+          {...props}
+        >
+          {children}
+        </code>
+      );
+    },
+  };
+
   return (
     <div className="container mx-auto p-4 max-w-4xl space-y-8 animate-fade-in">
       <Card className="p-6 bg-card text-card-foreground">
@@ -136,8 +176,29 @@ export function Results({ quiz, state, onRetry }: ResultsProps) {
         </div>
       </Card>
 
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Questions</h2>
+        <div className="flex items-center gap-4">
+          <Select 
+            value={filter} 
+            onValueChange={(value: FilterType) => setFilter(value)}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filter questions" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Questions</SelectItem>
+              <SelectItem value="correct">Correct Only</SelectItem>
+              <SelectItem value="incorrect">Incorrect Only</SelectItem>
+              <SelectItem value="marked">Marked for Review</SelectItem>
+              <SelectItem value="not-attempted">Not Attempted</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
       <div className="space-y-6">
-        {quiz.questions.map((question, index) => {
+        {filteredQuestions.map((question) => {
           const isCorrect = state.answers[question.id] === question.correctAnswer;
           const selectedAnswer = question.choices?.find(
             (choice) => choice.id === state.answers[question.id]
@@ -145,24 +206,38 @@ export function Results({ quiz, state, onRetry }: ResultsProps) {
           const correctAnswer = question.choices?.find(
             (choice) => choice.id === question.correctAnswer
           );
+          const isMarked = state.markedForReview?.includes(question.id);
+          const originalIndex = quiz.questions.findIndex(q => q.id === question.id);
 
           return (
             <Card key={question.id} className="p-6 bg-card text-card-foreground">
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold text-foreground">
-                    Question {index + 1}
+                    Question {originalIndex + 1}
                   </h3>
-                  <div className="flex items-center space-x-2">
-                    {isCorrect ? (
-                      <div className="flex items-center text-green-500 dark:text-green-400">
-                        <CheckCircle2 className="h-5 w-5 mr-1" />
-                        <span className="text-sm font-medium">Correct</span>
+                  <div className="flex items-center gap-4">
+                    {isMarked && (
+                      <div className="flex items-center text-yellow-500">
+                        <BookmarkCheck className="h-5 w-5 mr-1" />
+                        <span className="text-sm font-medium">Marked for Review</span>
                       </div>
+                    )}
+                    {state.answers[question.id] ? (
+                      isCorrect ? (
+                        <div className="flex items-center text-green-500 dark:text-green-400">
+                          <CheckCircle2 className="h-5 w-5 mr-1" />
+                          <span className="text-sm font-medium">Correct</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center text-destructive">
+                          <XCircle className="h-5 w-5 mr-1" />
+                          <span className="text-sm font-medium">Incorrect</span>
+                        </div>
+                      )
                     ) : (
-                      <div className="flex items-center text-destructive">
-                        <XCircle className="h-5 w-5 mr-1" />
-                        <span className="text-sm font-medium">Incorrect</span>
+                      <div className="flex items-center text-muted-foreground">
+                        <span className="text-sm font-medium">Not Attempted</span>
                       </div>
                     )}
                   </div>
@@ -235,6 +310,20 @@ export function Results({ quiz, state, onRetry }: ResultsProps) {
             </Card>
           );
         })}
+      </div>
+
+      {filteredQuestions.length === 0 && (
+        <div className="text-center py-8 text-muted-foreground">
+          No questions match the selected filter
+        </div>
+      )}
+
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold">Results JSON:</h3>
+        <CodeBlock 
+          code={JSON.stringify(results, null, 2)}
+          language="json"
+        />
       </div>
 
       <div className="flex justify-center gap-4">
