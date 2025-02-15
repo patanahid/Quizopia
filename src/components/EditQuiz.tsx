@@ -14,6 +14,15 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import "github-markdown-css/github-markdown-light.css";
 import "github-markdown-css/github-markdown-dark.css";
+import { Copy } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { CodeBlock } from "@/components/ui/code-block";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -195,6 +204,15 @@ export function EditQuiz({ id, quizzes, setQuizzes, editQuiz }: EditQuizProps) {
     }));
   };
 
+  const handleCopyJson = () => {
+    const quizJson = {
+      ...quiz,
+      id: quiz.id || uuidv4(),
+    };
+    navigator.clipboard.writeText(JSON.stringify(quizJson, null, 2));
+    toast.success("Quiz JSON copied to clipboard");
+  };
+
   return (
     <div className="container mx-auto p-4 max-w-4xl space-y-8 animate-fade-in">
       <div className="flex items-center justify-between gap-4 mb-6">
@@ -221,6 +239,29 @@ export function EditQuiz({ id, quizzes, setQuizzes, editQuiz }: EditQuizProps) {
           >
             Load Sample Quiz
           </Button>
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <Copy className="h-4 w-4 mr-2" />
+                Copy JSON
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Quiz JSON</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <CodeBlock 
+                  code={JSON.stringify({ ...quiz, id: quiz.id || uuidv4() }, null, 2)}
+                  language="json"
+                />
+                <Button onClick={handleCopyJson} className="w-full">
+                  <Copy className="h-4 w-4 mr-2" />
+                  Copy to Clipboard
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
         <Button variant="outline" onClick={() => navigate("/")}>
           Cancel
