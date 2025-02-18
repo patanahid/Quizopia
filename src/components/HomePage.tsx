@@ -136,7 +136,7 @@ export function HomePage({ quizzes, setQuizzes }: HomePageProps) {
                       variant="outline" 
                       size="sm" 
                       className="absolute top-2 right-2 h-8 w-8 p-0"
-                      onClick={() => copyCodeToClipboard(`Make these pdf questions into this format,make sure that you yourself add the answers from the answer key strictly in the correct answer field, not from your own knowledge, you can only add your info in the explanation and concise explanation in Hindi, if there is any mistake in the answer key you think, mention that in the explanation.Use your mind and context to make the questions format and options understandable if they seem corrupted, make sure the options dont contain the a b c d, part of the options again, use your mind to look if the formatting makes sense and what could be the correct one, the answer you write as correct answer should be from the key. format the tubular options into this format a) A - 1, b - 2, ...., make sure there are no errors, dont stop untill you write the full code, youcan use markdown tables make sure the headers contain the info about the rows, not separate info, in questions, and do not hullucinate, do not write questions that youare not provided with and dont guess questions, make sure you not skip the id of the options, make sure it doesnt have errors, the time should be 3 hours. {
+                      onClick={() => copyCodeToClipboard(JSON.stringify({
   "id": "unique_id",
   "title": "Quiz Title",
   "description": "A detailed description of your quiz that supports **markdown**",
@@ -144,7 +144,7 @@ export function HomePage({ quizzes, setQuizzes }: HomePageProps) {
     {
       "id": "q1",
       "type": "MCQ",
-      "text": "# Main Question\\n\\nWhat is the output of this code?\\n\\n\`\`\`python\\ndef example():\\n    return 42\\n\`\`\`\\n\\nChoose the correct answer:",
+      "text": "# Main Question\n\nWhat is the output of this code?\n\n```python\ndef example():\n    return 42\n```\n\nChoose the correct answer:",
       "choices": [
         {
           "id": "a",
@@ -171,7 +171,7 @@ export function HomePage({ quizzes, setQuizzes }: HomePageProps) {
     "timeLimit": 600,
     "shuffleQuestions": false
   }
-}`)}
+}, null, 2))}
                     >
                       <Copy className="h-4 w-4" />
                     </Button>
