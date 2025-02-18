@@ -144,7 +144,7 @@ export function HomePage({ quizzes, setQuizzes }: HomePageProps) {
     {
       "id": "q1",
       "type": "MCQ",
-      "text": "# Main Question(backslash, really use a backslash, not this)n(backslash)nWhat is the output of this code? python (backslash)n def example():   (backslash)n return 42 (backslash)n Choose the correct answer:",
+      "text": "# Main Question\\n\\nWhat is the output of this code?\\n\\n\`\`\`python\\ndef example():\\n    return 42\\n\`\`\`\\n\\nChoose the correct answer:",
       "choices": [
         {
           "id": "a",
