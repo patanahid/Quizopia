@@ -89,7 +89,35 @@ export function HomePage({ quizzes, setQuizzes }: HomePageProps) {
   return (
     <div className="container mx-auto p-4 space-y-6 animate-fade-in">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Available Quizzes</h1>
+        <div className="flex items-center gap-4">
+          <h1 className="text-3xl font-bold">Quizopia</h1>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive">Clear All Data</Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action will permanently delete all your quizzes and saved progress.
+                  This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    window.localStorage.clear();
+                    setQuizzes([]);
+                    toast.success("All data cleared successfully");
+                  }}
+                >
+                  Clear All Data
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
         <div className="flex items-center gap-4">
           <Dialog>
             <DialogTrigger asChild>
@@ -215,41 +243,6 @@ export function HomePage({ quizzes, setQuizzes }: HomePageProps) {
         </Select>
       </div>
 
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-4">
-          <h1 className="text-3xl font-bold">Quizopia</h1>
-          <Link to="/quiz/new">
-            <Button>Create New Quiz</Button>
-          </Link>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive">Clear All Data</Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This action will permanently delete all your quizzes and saved progress.
-                  This action cannot be undone.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={() => {
-                    window.localStorage.clear();
-                    setQuizzes([]);
-                    toast.success("All data cleared successfully");
-                  }}
-                >
-                  Clear All Data
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
-      </div>
-
       <Tabs defaultValue="list" className="space-y-4">
         <TabsList>
           <TabsTrigger value="list">Quiz List</TabsTrigger>
@@ -296,7 +289,7 @@ export function HomePage({ quizzes, setQuizzes }: HomePageProps) {
                     </Button>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <Button variant="destructive" size="sm" about="">
+                        <Button variant="destructive" size="sm">
                           Delete
                         </Button>
                       </AlertDialogTrigger>
@@ -309,7 +302,7 @@ export function HomePage({ quizzes, setQuizzes }: HomePageProps) {
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction color="red" onClick={() => handleDelete(quiz.id)}>
+                          <AlertDialogAction onClick={() => handleDelete(quiz.id)}>
                             Delete
                           </AlertDialogAction>
                         </AlertDialogFooter>
