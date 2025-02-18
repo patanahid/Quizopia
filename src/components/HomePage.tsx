@@ -116,7 +116,7 @@ export function HomePage({ quizzes, setQuizzes }: HomePageProps) {
     {
       "id": "q1",
       "type": "MCQ",
-      "text": "# Main Question\n\nWhat is the output of this code?\n\n```python\ndef example():\n    return 42\n```\n\nChoose the correct answer:",
+      "text": "# Main Question\n\nWhat is the output of this code?\n\n python\ndef example():\n    return 42\n\n\nChoose the correct answer:",
       "choices": [
         {
           "id": "a",
@@ -132,11 +132,11 @@ export function HomePage({ quizzes, setQuizzes }: HomePageProps) {
         },
         {
           "id": "d",
-          "text": "`undefined`"
+          "text": "undefined"
         }
       ],
       "correctAnswer": "a",
-      "explanation": "The function `example()` explicitly returns the number `42`. In Python, this is a valid return statement."
+      "explanation": "The function example() explicitly returns the number 42. In Python, this is a valid return statement."
     }
   ],
   "settings": {
