@@ -62,7 +62,8 @@ export function Quiz({ quiz, onComplete, onStateUpdate, initialState }: QuizProp
     createSave, 
     deleteSave, 
     loadSave, 
-    setupAutosave 
+    setupAutosave,
+    clearAllSaves
   } = useSaveSystem({ 
     quizId: quiz.id,
     autoSaveInterval: 30000, // 30 seconds
@@ -72,24 +73,7 @@ export function Quiz({ quiz, onComplete, onStateUpdate, initialState }: QuizProp
   const [state, setState] = useState<QuizState>(() => {
     if (initialState) return initialState;
 
-    // Check for autosave first
-    const autosave = saveSlots.find(slot => slot.isAutosave);
-    if (autosave) {
-      setShowLoadDialog(true);
-      return {
-        currentQuestionIndex: 0,
-        answers: {},
-        markedForReview: [],
-        timeRemaining: quiz.settings.timeLimit,
-        isPaused: true,
-        startTime: Date.now(),
-        totalPausedTime: 0,
-        isComplete: false
-      };
-    }
-
-    // Return fresh state if no saves found
-    return {
+    const freshState = {
       currentQuestionIndex: 0,
       answers: {},
       markedForReview: [],
@@ -99,34 +83,43 @@ export function Quiz({ quiz, onComplete, onStateUpdate, initialState }: QuizProp
       totalPausedTime: 0,
       isComplete: false
     };
+
+    // Check for existing saves
+    if (saveSlots.length > 0) {
+      setShowLoadDialog(true);
+      return freshState;
+    }
+
+    // No saves found, create initial autosave
+    createSave(freshState, "Initial Save", true);
+    return freshState;
   });
 
-  // Setup autosave
-  useEffect(() => {
-    if (!state.isComplete) {
-      return setupAutosave(state);
-    }
-  }, [state, setupAutosave]);
-
-  // Update parent component
-  useEffect(() => {
-    onStateUpdate?.(state);
-  }, [state, onStateUpdate]);
-
-  const handleStartNew = () => {
-    setState({
-      currentQuestionIndex: 0,
-      answers: {},
-      markedForReview: [],
-      timeRemaining: quiz.settings.timeLimit,
-      isPaused: true,
-      startTime: Date.now(),
-      totalPausedTime: 0,
-      isComplete: false
+  // Handle start quiz
+  const handleStartQuiz = () => {
+    setState(prev => ({
+      ...prev,
+      isPaused: false
+    }));
+    toast.info("Quiz started. Progress will be automatically saved.", {
+      duration: 3000
     });
-    setShowLoadDialog(false);
-    toast.success("Starting fresh quiz attempt!");
   };
+
+  // Setup autosave when the quiz starts
+  useEffect(() => {
+    if (!state.isPaused && !state.isComplete) {
+      const cleanup = setupAutosave(state);
+      return () => cleanup();
+    }
+  }, [state.isPaused, state.isComplete, setupAutosave, state]);
+
+  // Update parent component on state changes
+  useEffect(() => {
+    if (onStateUpdate) {
+      onStateUpdate(state);
+    }
+  }, [state, onStateUpdate]);
 
   const getQuestionStatus = (questionId: string) => {
     if (state.markedForReview.includes(questionId)) return "review";
@@ -156,7 +149,6 @@ export function Quiz({ quiz, onComplete, onStateUpdate, initialState }: QuizProp
   const handleAnswer = (answer: string) => {
     setState((prev) => {
       const isFirstAnswer = Object.keys(prev.answers).length === 0;
-      const now = Date.now();
       const newState = {
         ...prev,
         answers: {
@@ -165,11 +157,9 @@ export function Quiz({ quiz, onComplete, onStateUpdate, initialState }: QuizProp
         },
       };
 
+      // Start quiz on first answer if not started
       if (isFirstAnswer && prev.isPaused) {
         newState.isPaused = false;
-        newState.startTime = now;
-        newState.totalPausedTime = 0;
-        toast.success("Quiz Started");
       }
 
       return newState;
@@ -177,47 +167,29 @@ export function Quiz({ quiz, onComplete, onStateUpdate, initialState }: QuizProp
   };
 
   const handlePauseToggle = () => {
-    setState((prev) => {
-      const now = Date.now();
-      if (prev.isPaused) {
-        return {
-          ...prev,
-          isPaused: false,
-          startTime: now,
-        };
-      } else {
-        return {
-          ...prev,
-          isPaused: true,
-          totalPausedTime: prev.totalPausedTime + (now - prev.startTime),
-        };
-      }
-    });
-
+    setState(prev => ({
+      ...prev,
+      isPaused: !prev.isPaused
+    }));
     toast.success(state.isPaused ? "Quiz resumed" : "Quiz paused");
   };
 
   const handleTimeUpdate = (newTime: number) => {
-    setState((prev) => ({
+    setState(prev => ({
       ...prev,
-      timeRemaining: newTime,
+      timeRemaining: newTime
     }));
-
-    if (newTime <= 0) {
-      handleTimeUp();
-    }
   };
 
   const handleTimeUp = () => {
-    setState((prev) => ({
+    setState(prev => ({
       ...prev,
+      isComplete: true,
       isPaused: true,
-      timeRemaining: 0,
-      isComplete: true
+      timeRemaining: 0
     }));
-
     setShowResults(true);
-    toast.success("Time's up!");
+    toast.warning("Time's up!");
   };
 
   const handleComplete = () => {
@@ -268,6 +240,26 @@ export function Quiz({ quiz, onComplete, onStateUpdate, initialState }: QuizProp
     toast.success("Save deleted!");
   };
 
+  const handleClearAllSaves = () => {
+    clearAllSaves();
+    // Reset to fresh state
+    const freshState = {
+      currentQuestionIndex: 0,
+      answers: {},
+      markedForReview: [],
+      timeRemaining: quiz.settings.timeLimit,
+      isPaused: true,
+      startTime: Date.now(),
+      totalPausedTime: 0,
+      isComplete: false
+    };
+    setState(freshState);
+    setShowSaveDialog(false);
+    toast.info("Quiz reset. Autosave will begin when you start the quiz.", {
+      duration: 4000
+    });
+  };
+
   const formatTime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
@@ -282,6 +274,23 @@ export function Quiz({ quiz, onComplete, onStateUpdate, initialState }: QuizProp
   };
 
   const currentQuestion = quiz.questions[state.currentQuestionIndex];
+
+  // Handle start fresh quiz
+  const handleStartFresh = () => {
+    const freshState = {
+      currentQuestionIndex: 0,
+      answers: {},
+      markedForReview: [],
+      timeRemaining: quiz.settings.timeLimit,
+      isPaused: true,
+      startTime: Date.now(),
+      totalPausedTime: 0,
+      isComplete: false
+    };
+    setState(freshState);
+    setShowLoadDialog(false);
+    toast.success("Quiz ready to start!");
+  };
 
   if (showResults) {
     return (
@@ -446,9 +455,19 @@ export function Quiz({ quiz, onComplete, onStateUpdate, initialState }: QuizProp
         open={showSaveDialog}
         onOpenChange={setShowSaveDialog}
         saveSlots={saveSlots}
-        onSave={handleSaveQuiz}
-        onLoad={handleLoadSave}
-        onDelete={handleDeleteSave}
+        onSave={(name) => {
+          createSave(state, name);
+          setShowSaveDialog(false);
+        }}
+        onLoad={(id) => {
+          const loadedState = loadSave(id);
+          if (loadedState) {
+            setState(loadedState);
+            setShowSaveDialog(false);
+          }
+        }}
+        onDelete={deleteSave}
+        onClearAll={handleClearAllSaves}
       />
 
       <AlertDialog open={showLoadDialog} onOpenChange={setShowLoadDialog}>
@@ -460,7 +479,7 @@ export function Quiz({ quiz, onComplete, onStateUpdate, initialState }: QuizProp
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleStartNew}>
+            <AlertDialogCancel onClick={handleStartFresh}>
               Start Fresh
             </AlertDialogCancel>
             <AlertDialogAction onClick={() => {

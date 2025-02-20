@@ -86,6 +86,13 @@ export function useSaveSystem({
     setSaveSlots(prev => prev.filter(slot => slot.id !== id));
   }, []);
 
+  // Clear all saves
+  const clearAllSaves = useCallback(() => {
+    setSaveSlots([]);
+    localStorage.removeItem(`quiz-${quizId}-saves`);
+    // Remove notification moved to Quiz component
+  }, [quizId]);
+
   // Load a save
   const loadSave = useCallback((id: string) => {
     const save = saveSlots.find(slot => slot.id === id);
@@ -95,8 +102,13 @@ export function useSaveSystem({
     return null;
   }, [saveSlots]);
 
-  // Setup autosave
+  // Setup autosave - only create initial save when quiz starts
   const setupAutosave = useCallback((state: QuizState) => {
+    // Create initial autosave when quiz starts
+    if (!state.isPaused && !state.isComplete) {
+      createSave(state, "Autosave", true);
+    }
+
     const intervalId = setInterval(() => {
       if (!state.isPaused && !state.isComplete) {
         createSave(state, "Autosave", true);
@@ -111,6 +123,7 @@ export function useSaveSystem({
     createSave,
     deleteSave,
     loadSave,
-    setupAutosave
+    setupAutosave,
+    clearAllSaves
   };
 }

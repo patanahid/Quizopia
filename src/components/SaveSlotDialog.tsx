@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { format } from "date-fns";
 import { Save, Trash2, Clock } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface SaveSlotDialogProps {
   open: boolean;
@@ -20,6 +21,7 @@ interface SaveSlotDialogProps {
   onSave: (name: string) => void;
   onLoad: (id: string) => void;
   onDelete: (id: string) => void;
+  onClearAll: () => void;
 }
 
 export function SaveSlotDialog({
@@ -29,6 +31,7 @@ export function SaveSlotDialog({
   onSave,
   onLoad,
   onDelete,
+  onClearAll,
 }: SaveSlotDialogProps) {
   const [newSaveName, setNewSaveName] = useState("");
 
@@ -66,10 +69,25 @@ export function SaveSlotDialog({
 
           {/* Save Slots List */}
           <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <h3 className="text-sm font-medium">Saved Games</h3>
+              {saveSlots.length > 0 && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={onClearAll}
+                >
+                  Clear All Saves
+                </Button>
+              )}
+            </div>
             {saveSlots.map((slot) => (
               <div
                 key={slot.id}
-                className="flex items-center justify-between p-3 rounded-lg border bg-card"
+                className={cn(
+                  "flex items-center justify-between p-3 rounded-lg border bg-card",
+                  slot.timestamp === Math.max(...saveSlots.map(s => s.timestamp)) && "border-primary"
+                )}
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
@@ -79,6 +97,11 @@ export function SaveSlotDialog({
                     {slot.isAutosave && (
                       <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
                         Auto
+                      </span>
+                    )}
+                    {slot.timestamp === Math.max(...saveSlots.map(s => s.timestamp)) && (
+                      <span className="text-xs bg-green-500/10 text-green-500 px-2 py-0.5 rounded">
+                        Latest
                       </span>
                     )}
                   </div>
