@@ -383,7 +383,7 @@ export function Quiz({ quiz, onComplete, onStateUpdate, initialState }: QuizProp
                     key={choice.id}
                     onClick={() => handleAnswer(choice.id)}
                     className={cn(
-                      "flex items-start space-x-3 p-4 rounded-lg border cursor-pointer transition-colors",
+                      "flex items-start space-x-3 p-3 rounded-lg border cursor-pointer transition-colors",
                       {
                         "bg-primary/5 border-primary": state.answers[currentQuestion.id] === choice.id,
                         "hover:bg-muted": state.answers[currentQuestion.id] !== choice.id,
