@@ -114,6 +114,6 @@
 
 
 .prose p {
-  margin-top: 0.25rem; /* or adjust to your desired value */
-  margin-bottom: 0.25rem; /* or adjust to your desired value */
+  margin-top: 0; /* or adjust to your desired value */
+  margin-bottom: 0; /* or adjust to your desired value */
 }
