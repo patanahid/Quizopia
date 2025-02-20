@@ -111,3 +111,9 @@
     --tw-prose-invert-th-bg: theme('colors.muted');
   }
 }
+
+
+.prose p {
+  margin-top: 0.25rem; /* or adjust to your desired value */
+  margin-bottom: 0.25rem; /* or adjust to your desired value */
+}
