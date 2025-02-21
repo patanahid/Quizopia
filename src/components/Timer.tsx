@@ -19,50 +19,46 @@ const Timer: React.FC<TimerProps> = ({
   onTick,
 }) => {
   const [timeRemaining, setTimeRemaining] = useState(initialTime);
-  const intervalRef = useRef<number | null>(null);
-  const lastTickRef = useRef<number>(Date.now());
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Reset time when initialTime changes
   useEffect(() => {
     setTimeRemaining(initialTime);
-    lastTickRef.current = Date.now();
   }, [initialTime]);
 
   // Handle timer ticks
   useEffect(() => {
+    // Clear any existing interval
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
 
+    // Check if timer should be stopped
     if (timeRemaining <= 0) {
       onTimeUp();
       return;
     }
 
+    // Start timer if not paused
     if (!isPaused) {
-      lastTickRef.current = Date.now();
-      intervalRef.current = window.setInterval(() => {
-        const now = Date.now();
-        const delta = Math.floor((now - lastTickRef.current) / 1000);
-        
-        if (delta >= 1) {
-          setTimeRemaining(prev => {
-            const newTime = Math.max(0, prev - delta);
-            onTick(newTime);
-            return newTime;
-          });
-          lastTickRef.current = now;
-        }
-      }, 100); // Check more frequently for accuracy
+      intervalRef.current = setInterval(() => {
+        setTimeRemaining((prev) => {
+          const newTime = Math.max(0, prev - 1);
+          onTick(newTime);
+          return newTime;
+        });
+      }, 1000);
     }
 
+    // Cleanup on unmount or when dependencies change
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
+        intervalRef.current = null;
       }
     };
-  }, [isPaused, onTimeUp, onTick, timeRemaining]);
+  }, [isPaused, onTimeUp, onTick]);
 
   const formatTime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
