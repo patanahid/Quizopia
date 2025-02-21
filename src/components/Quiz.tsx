@@ -99,20 +99,26 @@ export function Quiz({ quiz, onComplete, onStateUpdate, initialState }: QuizProp
   const handleStartQuiz = () => {
     setState(prev => ({
       ...prev,
-      isPaused: false
+      isPaused: false,
+      startTime: Date.now()
     }));
     toast.info("Quiz started. Progress will be automatically saved.", {
       duration: 3000
     });
   };
 
-  // Setup autosave when the quiz starts
+  // Setup autosave and start quiz when mounted
   useEffect(() => {
+    // Start quiz automatically if there's a loaded state
+    if (initialState && !state.isComplete) {
+      handleStartQuiz();
+    }
+
     if (!state.isPaused && !state.isComplete) {
       const cleanup = setupAutosave(state);
       return () => cleanup();
     }
-  }, [state.isPaused, state.isComplete, setupAutosave, state]);
+  }, [state.isPaused, state.isComplete, setupAutosave, state, initialState]);
 
   // Update parent component on state changes
   useEffect(() => {
@@ -148,21 +154,18 @@ export function Quiz({ quiz, onComplete, onStateUpdate, initialState }: QuizProp
 
   const handleAnswer = (answer: string) => {
     setState((prev) => {
-      const isFirstAnswer = Object.keys(prev.answers).length === 0;
-      const newState = {
+      // Start quiz if it hasn't started yet
+      if (prev.isPaused) {
+        handleStartQuiz();
+      }
+
+      return {
         ...prev,
         answers: {
           ...prev.answers,
           [currentQuestion.id]: prev.answers[currentQuestion.id] === answer ? "" : answer,
         },
       };
-
-      // Start quiz on first answer if not started
-      if (isFirstAnswer && prev.isPaused) {
-        newState.isPaused = false;
-      }
-
-      return newState;
     });
   };
 
@@ -289,7 +292,8 @@ export function Quiz({ quiz, onComplete, onStateUpdate, initialState }: QuizProp
     };
     setState(freshState);
     setShowLoadDialog(false);
-    toast.success("Quiz ready to start!");
+    handleStartQuiz(); // Start the quiz immediately
+    toast.success("Quiz started!");
   };
 
   if (showResults) {
