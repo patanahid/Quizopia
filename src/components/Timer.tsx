@@ -34,18 +34,21 @@ const Timer: React.FC<TimerProps> = ({
       intervalRef.current = null;
     }
 
-    // Check if timer should be stopped
-    if (timeRemaining <= 0) {
-      onTimeUp();
-      return;
-    }
-
-    // Start timer if not paused
-    if (!isPaused) {
+    // Start timer if not paused and time remaining
+    if (!isPaused && timeRemaining > 0) {
       intervalRef.current = setInterval(() => {
         setTimeRemaining((prev) => {
           const newTime = Math.max(0, prev - 1);
-          onTick(newTime);
+          if (newTime === 0) {
+            // Clear interval and call onTimeUp when time reaches 0
+            if (intervalRef.current) {
+              clearInterval(intervalRef.current);
+              intervalRef.current = null;
+            }
+            onTimeUp();
+          } else {
+            onTick(newTime);
+          }
           return newTime;
         });
       }, 1000);
@@ -58,7 +61,7 @@ const Timer: React.FC<TimerProps> = ({
         intervalRef.current = null;
       }
     };
-  }, [isPaused, onTimeUp, onTick]);
+  }, [isPaused, timeRemaining, onTimeUp, onTick]);
 
   const formatTime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
