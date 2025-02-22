@@ -19,50 +19,49 @@ const Timer: React.FC<TimerProps> = ({
   onTick,
 }) => {
   const [timeRemaining, setTimeRemaining] = useState(initialTime);
-  const intervalRef = useRef<number | null>(null);
-  const lastTickRef = useRef<number>(Date.now());
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Reset time when initialTime changes
   useEffect(() => {
     setTimeRemaining(initialTime);
-    lastTickRef.current = Date.now();
   }, [initialTime]);
 
   // Handle timer ticks
   useEffect(() => {
+    // Clear any existing interval
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
 
-    if (timeRemaining <= 0) {
-      onTimeUp();
-      return;
-    }
-
-    if (!isPaused) {
-      lastTickRef.current = Date.now();
-      intervalRef.current = window.setInterval(() => {
-        const now = Date.now();
-        const delta = Math.floor((now - lastTickRef.current) / 1000);
-        
-        if (delta >= 1) {
-          setTimeRemaining(prev => {
-            const newTime = Math.max(0, prev - delta);
+    // Start timer if not paused and time remaining
+    if (!isPaused && timeRemaining > 0) {
+      intervalRef.current = setInterval(() => {
+        setTimeRemaining((prev) => {
+          const newTime = Math.max(0, prev - 1);
+          if (newTime === 0) {
+            // Clear interval and call onTimeUp when time reaches 0
+            if (intervalRef.current) {
+              clearInterval(intervalRef.current);
+              intervalRef.current = null;
+            }
+            onTimeUp();
+          } else {
             onTick(newTime);
-            return newTime;
-          });
-          lastTickRef.current = now;
-        }
-      }, 100); // Check more frequently for accuracy
+          }
+          return newTime;
+        });
+      }, 1000);
     }
 
+    // Cleanup on unmount or when dependencies change
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
+        intervalRef.current = null;
       }
     };
-  }, [isPaused, onTimeUp, onTick, timeRemaining]);
+  }, [isPaused, timeRemaining, onTimeUp, onTick]);
 
   const formatTime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
