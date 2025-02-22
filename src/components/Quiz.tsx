@@ -147,31 +147,38 @@ export function Quiz({ quiz, onComplete, onStateUpdate, initialState }: QuizProp
   };
 
   const handleAnswer = (answer: string) => {
-    setState((prev) => {
-      const isFirstAnswer = Object.keys(prev.answers).length === 0;
-      const newState = {
-        ...prev,
-        answers: {
-          ...prev.answers,
-          [currentQuestion.id]: prev.answers[currentQuestion.id] === answer ? "" : answer,
-        },
-      };
-
-      // Start quiz on first answer if not started
-      if (isFirstAnswer && prev.isPaused) {
-        newState.isPaused = false;
-      }
-
-      return newState;
-    });
+    setState((prev) => ({
+      ...prev,
+      answers: {
+        ...prev.answers,
+        [currentQuestion.id]: prev.answers[currentQuestion.id] === answer ? "" : answer,
+      },
+    }));
   };
 
   const handlePauseToggle = () => {
-    setState(prev => ({
-      ...prev,
-      isPaused: !prev.isPaused
-    }));
-    toast.success(state.isPaused ? "Quiz resumed" : "Quiz paused");
+    if (state.isPaused) {
+      // Starting/resuming the quiz
+      if (saveSlots.length === 0) {
+        // Create initial autosave if no saves exist
+        createSave(state, "Initial Save", true);
+      }
+      toast.info("Quiz started! Progress will be automatically saved.", {
+        duration: 3000
+      });
+      setState(prev => ({
+        ...prev,
+        isPaused: false,
+        startTime: Date.now()
+      }));
+    } else {
+      // Pausing the quiz
+      toast.success("Quiz paused");
+      setState(prev => ({
+        ...prev,
+        isPaused: true
+      }));
+    }
   };
 
   const handleTimeUpdate = (newTime: number) => {
@@ -229,15 +236,36 @@ export function Quiz({ quiz, onComplete, onStateUpdate, initialState }: QuizProp
   const handleLoadSave = (id: string) => {
     const loadedState = loadSave(id);
     if (loadedState) {
+      // Ensure we preserve the isPaused state from the save
       setState(loadedState);
       setShowLoadDialog(false);
-      toast.success("Save loaded successfully!");
+      toast.success(`Save loaded successfully! ${!loadedState.isPaused ? 'Timer resumed.' : ''}`);
     }
   };
 
   const handleDeleteSave = (id: string) => {
+    const isLastSave = saveSlots.length === 1;
     deleteSave(id);
-    toast.success("Save deleted!");
+    
+    if (isLastSave) {
+      // Reset to fresh state when deleting last save
+      const freshState = {
+        currentQuestionIndex: 0,
+        answers: {},
+        markedForReview: [],
+        timeRemaining: quiz.settings.timeLimit,
+        isPaused: true,
+        startTime: Date.now(),
+        totalPausedTime: 0,
+        isComplete: false
+      };
+      setState(freshState);
+      toast.info("Quiz reset. New autosave will be created when you start the quiz.", {
+        duration: 4000
+      });
+    } else {
+      toast.success("Save deleted!");
+    }
   };
 
   const handleClearAllSaves = () => {
@@ -255,7 +283,7 @@ export function Quiz({ quiz, onComplete, onStateUpdate, initialState }: QuizProp
     };
     setState(freshState);
     setShowSaveDialog(false);
-    toast.info("Quiz reset. Autosave will begin when you start the quiz.", {
+    toast.info("Quiz reset. New autosave will be created when you start the quiz.", {
       duration: 4000
     });
   };
@@ -292,6 +320,11 @@ export function Quiz({ quiz, onComplete, onStateUpdate, initialState }: QuizProp
     toast.success("Quiz ready to start!");
   };
 
+  useEffect(() => {
+    console.log('Time Remaining:', state.timeRemaining);
+    console.log('Is Paused:', state.isPaused);
+  }, [state.timeRemaining, state.isPaused]);
+
   if (showResults) {
     return (
       <Results
@@ -308,7 +341,7 @@ export function Quiz({ quiz, onComplete, onStateUpdate, initialState }: QuizProp
         <div className="flex flex-col gap-8">
           <div className="flex items-center justify-between">
             <h1 className="text-2xl font-semibold">{quiz.title}</h1>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 justify-end">
               <Timer
                 initialTime={state.timeRemaining}
                 isPaused={state.isPaused}
@@ -316,9 +349,6 @@ export function Quiz({ quiz, onComplete, onStateUpdate, initialState }: QuizProp
                 onTimeUp={handleTimeUp}
                 onTick={handleTimeUpdate}
               />
-              <div className="text-sm font-medium">
-                Time Remaining: {formatTime(state.timeRemaining)}
-              </div>
               <ThemeToggle />
               <Button
                 variant="outline"
@@ -487,9 +517,10 @@ export function Quiz({ quiz, onComplete, onStateUpdate, initialState }: QuizProp
               if (autosave) {
                 const loadedState = loadSave(autosave.id);
                 if (loadedState) {
+                  // Resume with the saved pause state
                   setState(loadedState);
                   setShowLoadDialog(false);
-                  toast.success("Save loaded successfully!");
+                  toast.success(`Save loaded successfully! ${!loadedState.isPaused ? 'Timer resumed.' : 'Click play to start timer.'}`);
                 }
               }
             }}>
