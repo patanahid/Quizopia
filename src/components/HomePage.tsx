@@ -8,7 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
-import { Search, Plus, Copy } from "lucide-react";
+import { Search, Plus, Copy, BarChart } from "lucide-react";
 import { Quiz } from "@/types/quiz";
 import { Link, useNavigate } from "react-router-dom";
 import { ThemeToggle } from "./ThemeToggle";
@@ -159,6 +159,10 @@ here is the format, strictly follow this format only :
           </AlertDialog>
         </div>
         <div className="flex items-center gap-4">
+          <Button variant="outline" onClick={() => navigate('/results')}>
+            <BarChart className="h-4 w-4 mr-2" />
+            View Results
+          </Button>
           <Dialog>
             <DialogTrigger asChild>
               <Button variant="outline">

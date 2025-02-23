@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { SaveSlot } from "@/hooks/useSaveSystem";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +34,13 @@ export function SaveSlotDialog({
   onClearAll,
 }: SaveSlotDialogProps) {
   const [newSaveName, setNewSaveName] = useState("");
+
+  // Clear input when dialog closes
+  useEffect(() => {
+    if (!open) {
+      setNewSaveName("");
+    }
+  }, [open]);
 
   const handleSave = () => {
     if (!newSaveName.trim()) return;
