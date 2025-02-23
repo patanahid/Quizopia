@@ -154,31 +154,30 @@ export function useQuizResults() {
 
       console.log('Created result:', result);
 
-      // Update state and localStorage atomically
-      setResults(prev => {
-        const newResults = [result, ...prev];
-        try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(newResults));
-          console.log('Saved to localStorage successfully');
-        } catch (error) {
-          console.error('Failed to save to localStorage:', error);
+      // Save to localStorage first
+      try {
+        const currentResults = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        const newResults = [result, ...currentResults];
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(newResults));
+        console.log('Saved to localStorage successfully');
+        
+        // Update state after successful localStorage save
+        setResults(newResults);
+        
+        // Verify the save
+        const verifyResults = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        const savedResult = verifyResults.find((r: any) => r.id === result.id);
+        
+        if (!savedResult) {
+          throw new Error('Verification failed');
         }
-        return newResults;
-      });
-
-      // Wait for state update and verify
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      // Verify the result was saved
-      const savedResults = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-      const savedResult = savedResults.find((r: any) => r.id === result.id);
-      
-      if (!savedResult) {
-        throw new Error('Failed to save result - not found in localStorage');
+        
+        console.log('Save verified successfully');
+        return result;
+      } catch (error) {
+        console.error('Error saving result:', error);
+        throw new Error('Failed to save quiz result. Please try again.');
       }
-
-      console.log('Saved and verified result successfully');
-      return result;
     } catch (error) {
       console.error('Error in saveResult:', error);
       throw error;

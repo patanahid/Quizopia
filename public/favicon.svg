@@ -1,9 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="#007bff">
-  <path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/>
-  <path d="M8 12h.01"/>
-  <path d="M11 12h.01"/>
-  <path d="M14 12h.01"/>
-  <path d="M12 17v.01"/>
-  <path d="M12 13.5V15"/>
-  <path d="M8 17h8"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="white" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-message-circle-question h-6 w-6" data-component-path="src\components\Header.tsx" data-component-name="MessageCircleQuestion" data-component-line="14" data-component-file="Header.tsx" data-component-content="%7B%22className%22%3A%22h-6%20w-6%22%7D" style="--darkreader-inline-stroke: currentColor;" data-darkreader-inline-stroke=""><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"></path><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><path d="M12 17h.01"></path></svg>

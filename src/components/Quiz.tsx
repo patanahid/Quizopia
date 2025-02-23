@@ -152,16 +152,8 @@ export function Quiz({ quiz, onComplete, onStateUpdate, initialState }: QuizProp
       duration: 4000
     });
 
-    // Create initial autosave and show it
+    // Create initial autosave
     setupAutosave(state);
-    
-    // Check for saves and show dialog after a short delay
-    setTimeout(() => {
-      const hasSaves = checkForSaves();
-      if (hasSaves) {
-        setShowSaveDialog(true);
-      }
-    }, 200);
   };
 
   // Add button to check for saves
@@ -232,16 +224,11 @@ export function Quiz({ quiz, onComplete, onStateUpdate, initialState }: QuizProp
   };
 
   const handleAnswer = (answer: string) => {
-    console.log('Selecting answer:', answer, 'for question:', currentQuestion.id);
-    console.log('Previous answers:', state.answers);
-    
     setState((prev) => {
       const newAnswers = {
         ...prev.answers,
-        [currentQuestion.id]: answer, // Always set the answer, don't toggle
+        [currentQuestion.id]: prev.answers[currentQuestion.id] === answer ? '' : answer, // Toggle answer
       };
-      
-      console.log('Updated answers:', newAnswers);
       return {
         ...prev,
         answers: newAnswers,
@@ -252,36 +239,25 @@ export function Quiz({ quiz, onComplete, onStateUpdate, initialState }: QuizProp
   const handlePauseToggle = () => {
     if (state.isPaused) {
       // Starting/resuming the quiz
-      setState(prev => ({
-        ...prev,
+      const newState = {
+        ...state,
         isPaused: false,
         startTime: Date.now()
-      }));
-      
-      // Show prominent notification
-      toast.success("Quiz resumed!", {
-        description: "Your progress will continue to be saved automatically",
-        duration: 4000
-      });
-
-      // Create/update autosave and show it
-      setTimeout(() => {
-        setupAutosave(state);
-        setShowSaveDialog(true);
-      }, 100);
+      };
+      setState(newState);
+      setupAutosave(newState);
+      setShowSaveDialog(true); // Show saves after resuming
+      toast.success("Quiz resumed!");
     } else {
       // Pausing the quiz
-      setState(prev => ({
-        ...prev,
+      const newState = {
+        ...state,
         isPaused: true
-      }));
-      
-      // Show current saves and notification
-      setShowSaveDialog(true);
-      toast.info("Quiz paused", {
-        description: "Your progress has been saved",
-        duration: 3000
-      });
+      };
+      setState(newState);
+      setupAutosave(newState);
+      setShowSaveDialog(true); // Show saves after pausing
+      toast.info("Quiz paused");
     }
   };
 
@@ -293,109 +269,97 @@ export function Quiz({ quiz, onComplete, onStateUpdate, initialState }: QuizProp
   };
 
   const saveAndNavigate = async (finalState: QuizState, isTimeUp = false) => {
-    try {
-      console.log('Saving quiz with state:', finalState);
-      console.log('Current answers:', finalState.answers);
+    let retryCount = 0;
+    const maxRetries = 3;
+    
+    while (retryCount < maxRetries) {
+      try {
+        // Show saving status
+        toast.loading(
+          retryCount === 0 ? "Saving quiz results..." : `Retrying save (attempt ${retryCount + 1})...`
+        );
 
-      // Validate answers
-      const answeredQuestions = Object.values(finalState.answers).filter(a => a && a.length > 0).length;
-      console.log(`Answered ${answeredQuestions} out of ${quiz.questions.length} questions`);
+        // Clear any existing saves
+        clearAllSaves();
+        await new Promise(resolve => setTimeout(resolve, 200));
 
-      // Clear any existing saves
-      clearAllSaves();
+        // Attempt to save
+        const result = await saveResult(quiz, finalState);
+        
+        // Complete the quiz
+        onComplete(finalState);
 
-      // Save result
-      const result = await Promise.resolve(saveResult(quiz, finalState));
-      console.log('Saved result:', result);
+        // Show success notification
+        toast.dismiss();
+        if (isTimeUp) {
+          toast.warning("Time's up!");
+        } else {
+          toast.success("Quiz completed!", {
+            description: `Score: ${result.score.percentage.toFixed(1)}%`,
+            duration: 3000
+          });
+        }
 
-      // Verify the result was saved
-      const savedResults = JSON.parse(localStorage.getItem('quiz-results') || '[]');
-      const savedResult = savedResults.find((r: any) => r.id === result.id);
-
-      if (!savedResult) {
-        throw new Error('Failed to save result to localStorage');
-      }
-
-      // Complete the quiz
-      onComplete(finalState);
-
-      // Show notifications
-      if (isTimeUp) {
-        toast.warning("Time's up!");
-      } else {
-        toast.success("Quiz completed!", {
-          description: `Score: ${result.score.percentage.toFixed(1)}%`,
-          duration: 3000
-        });
-      }
-
-      // Wait a moment to ensure state is updated
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      // Show results locally first
-      setShowResults(true);
-
-      // Then navigate after a short delay
-      setTimeout(() => {
+        // Show results and navigate
+        setShowResults(true);
         navigate(`/results/${result.id}`);
-      }, 500);
+        return result;
 
-      return result;
-    } catch (error) {
-      console.error('Error saving quiz:', error);
-      toast.error("Failed to save results. Showing local results.");
-      setShowResults(true);
-      throw error;
+      } catch (error) {
+        console.error(`Save attempt ${retryCount + 1} failed:`, error);
+        retryCount++;
+        
+        if (retryCount === maxRetries) {
+          toast.dismiss();
+          toast.error(
+            "Failed to save quiz results. Please try refreshing the page and completing the quiz again.",
+            { duration: 5000 }
+          );
+          throw error;
+        }
+        
+        // Wait longer between each retry
+        await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+      }
     }
   };
 
   const handleTimeUp = async () => {
+    const finalState: QuizState = {
+      ...state,
+      isComplete: true,
+      isPaused: true,
+      timeRemaining: 0,
+      answers: { ...state.answers }
+    };
+
+    setState(finalState);
+
     try {
-      // Create final state
-      const finalState: QuizState = {
-        ...state,
-        isComplete: true,
-        isPaused: true,
-        timeRemaining: 0,
-        answers: { ...state.answers }
-      };
-
-      // Update state
-      setState(finalState);
-
-      // Save and navigate
       await saveAndNavigate(finalState, true);
     } catch (error) {
       console.error('Error in handleTimeUp:', error);
-      toast.error("Failed to save results. Showing local results.");
+      // Error toast is already shown by saveAndNavigate
       setShowResults(true);
     }
   };
 
   const handleComplete = async () => {
+    const finalState: QuizState = {
+      ...state,
+      isComplete: true,
+      isPaused: true,
+      timeRemaining: 0,
+      answers: { ...state.answers }
+    };
+
+    setState(finalState);
+
     try {
-      // Show initial notification
-      toast.info("Completing quiz...");
-
-      // Create final state
-      const finalState: QuizState = {
-        ...state,
-        isComplete: true,
-        isPaused: true,
-        timeRemaining: 0,
-        answers: { ...state.answers }
-      };
-
-      // Update state
-      setState(finalState);
-
-      // Save and navigate
       await saveAndNavigate(finalState, false);
     } catch (error) {
       console.error('Error in handleComplete:', error);
-      toast.error("Failed to save results. Please try again.");
-      
-      // Reset completion state
+      // Reset completion state since save failed
       setState(prev => ({
         ...prev,
         isComplete: false,
@@ -429,15 +393,16 @@ export function Quiz({ quiz, onComplete, onStateUpdate, initialState }: QuizProp
     const loadedState = loadSave(id);
     if (loadedState) {
       console.log('Found save state:', loadedState);
-      setState(loadedState); // Use loaded state directly
+      setState(loadedState);
       setShowLoadDialog(false);
-      setShowSaveDialog(false);
-      toast.success(`Save loaded successfully! ${!loadedState.isPaused ? 'Timer resumed.' : 'Click play to start timer.'}`);
       
-      // Force a check for saves after loading
-      setTimeout(() => {
-        checkForSaves();
-      }, 100);
+      // Create a new autosave with the loaded state
+      setupAutosave(loadedState);
+      
+      // Show the save dialog to display current saves
+      setShowSaveDialog(true);
+      
+      toast.success(`Save loaded successfully! ${!loadedState.isPaused ? 'Timer resumed.' : 'Click play to start timer.'}`);
     } else {
       console.log('No save state found, resetting to fresh state');
       handleStartFresh();
@@ -476,7 +441,7 @@ export function Quiz({ quiz, onComplete, onStateUpdate, initialState }: QuizProp
         toast.info("Current save deleted. Quiz reset to start.");
       }
     } else {
-      toast.success("Save deleted successfully");
+      toast.success("Save deleted successfully.");
     }
 
     // Delete the save
@@ -592,25 +557,14 @@ export function Quiz({ quiz, onComplete, onStateUpdate, initialState }: QuizProp
                 onTick={handleTimeUpdate}
               />
               <ThemeToggle />
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCheckSaves}
-                  className="text-primary"
-                >
-                  <Clock className="w-4 h-4 mr-2" />
-                  Check Saves
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowSaveDialog(true)}
-                >
-                  <Save className="w-4 h-4 mr-2" />
-                  Save Quiz
-                </Button>
-              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowSaveDialog(true)}
+              >
+                <Save className="w-4 h-4 mr-2" />
+                Save Quiz
+              </Button>
             </div>
           </div>
 

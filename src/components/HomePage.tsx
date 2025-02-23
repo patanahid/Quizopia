@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
+import { useSaveSystem } from "@/hooks/useSaveSystem";
 import {
   Select,
   SelectContent,
@@ -35,6 +36,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import Results from "@/pages/Results";
 
 interface HomePageProps {
   quizzes: Quiz[];
@@ -45,6 +47,20 @@ export function HomePage({ quizzes, setQuizzes }: HomePageProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const navigate = useNavigate();
+  const [selectedQuizId, setSelectedQuizId] = useState<string | null>(null);
+  const { clearAllSaves } = useSaveSystem({
+    quizId: selectedQuizId || 'default',
+    autoSaveInterval: 30000,
+    maxManualSlots: 3
+  });
+
+  const handleClearSaves = (quizId: string) => {
+    setSelectedQuizId(quizId);
+    setTimeout(() => {
+      clearAllSaves();
+      toast.success("All saves cleared for this quiz");
+    }, 0);
+  };
 
   const handleDelete = (id: string) => {
     if (quizzes.length <= 1) {
@@ -55,64 +71,8 @@ export function HomePage({ quizzes, setQuizzes }: HomePageProps) {
     toast.success("Quiz deleted successfully");
   };
 
-  const handleClearSave = (id: string) => {
-    localStorage.removeItem(`quiz-${id}-save`);
-    toast.success("Saved progress cleared");
-  };
-
   const handleCreateQuiz = () => {
     navigate(`/quiz/new`);
-  };
-
-  const copyPromptToClipboard = () => {
-    const promptText = `Make these pdf questions into this format,make sure that you yourself add the answers from the answer key strictly in the correct answer field in the correctoption answer field, not from your own knowledge on the topic, you can only add your info in the explanation and concise explanation in Hindi, if there is any mistake in the answer key you think, mention that in the explanation of that question.Use your mind and context to make the questions format and options understandable if they seem corrupted, make sure the options dont contain the a b c d, part of the options again, use your mind to look if the formatting makes sense and what could be the correct one, the answer you write as correct answer should be from the key. format the tubular options into this format a) A - 1, b - 2, ...., make sure there are no errors, dont stop untill you write the full code, youcan use markdown tables make sure the headers contain the info about the rows, not separate info, in questions, and do not hullucinate, do not write questions that youare not provided with and dont guess questions, make sure you not skip the id of the options, make sure it doesnt have errors, the time should be 3 hours.DONT ADD ANY EXPLAINATION IN HINDI INFO, MAKE THE EXPLAINATION KEY'S VALUE IN HINDI, there should be only one explaination key, make sure that there is and newline before and after tables so that they render,  DONT NOT STOP UNITLL YOU HAVE PROVIDED FULL OUTPUT, IN ONE RESPONSE
- 
-
-here is the format, strictly follow this format only :
-
-{
-  "id": "unique_id",
-  "title": "Quiz Title",
-  "description": "A detailed description of your quiz that supports **markdown**",
-  "questions": [
-    {
-      "id": "q1",
-      "type": "MCQ",
-      "text": "# Main Question\n\nWhat is the output of this code?\n\n python\ndef example():\n    return 42\n n\nChoose the correct answer:",
-      "choices": [
-        {
-          "id": "a",
-          "text": "42"
-        },
-        {
-          "id": "b",
-          "text": "None"
-        },
-        {
-          "id": "c",
-          "text": "An error"
-        },
-        {
-          "id": "d",
-          "text": "undefined"
-        }
-      ],
-      "correctAnswer": "a",
-      "explanation": "The function example() explicitly returns the number 42. In Python, this is a valid return statement."
-    }
-  ],
-  "settings": {
-    "timeLimit": 600,
-    "shuffleQuestions": false
-  }
-}`;
-    navigator.clipboard.writeText(promptText);
-    toast.success("Prompt copied to clipboard!");
-  };
-
-  const copyCodeToClipboard = (code: string) => {
-    navigator.clipboard.writeText(code);
-    toast.success("Code copied to clipboard!");
   };
 
   const filteredQuizzes = quizzes
@@ -129,131 +89,9 @@ here is the format, strictly follow this format only :
   return (
     <div className="container mx-auto p-4 space-y-6 animate-fade-in">
       <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold">Quizopia</h1>
         <div className="flex items-center gap-4">
-          <h1 className="text-3xl font-bold">Quizopia</h1>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive">Clear All Data</Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This action will permanently delete all your quizzes and saved progress.
-                  This action cannot be undone.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={() => {
-                    window.localStorage.clear();
-                    setQuizzes([]);
-                    toast.success("All data cleared successfully");
-                  }}
-                >
-                  Clear All Data
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
-        <div className="flex items-center gap-4">
-          <Button variant="outline" onClick={() => navigate('/results')}>
-            <BarChart className="h-4 w-4 mr-2" />
-            View Results
-          </Button>
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="outline">
-                <Copy className="h-4 w-4 mr-2" />
-                Copy Prompt
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-3xl">
-              <DialogHeader>
-                <DialogTitle>Quiz Format Prompt</DialogTitle>
-                <DialogDescription className="space-y-4">
-                  <p>Use this format to create quizzes from PDF questions:</p>
-                  <div className="relative">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="absolute top-2 right-2 h-8 w-8 p-0"
-                      onClick={() => copyCodeToClipboard(JSON.stringify({
-  "id": "unique_id",
-  "title": "Quiz Title",
-  "description": "A detailed description of your quiz that supports **markdown**",
-  "questions": [
-    {
-      "id": "q1",
-      "type": "MCQ",
-      "text": "# Main Question\n\nWhat is the output of this code?\n\n```python\ndef example():\n    return 42\n```\n\nChoose the correct answer:",
-      "choices": [
-        {
-          "id": "a",
-          "text": "42"
-        },
-        {
-          "id": "b",
-          "text": "None"    
-        },
-        {
-          "id": "c",
-          "text": "An error"
-        },
-        {
-          "id": "d",
-          "text": "undefined"
-        }
-      ],
-      "correctAnswer": "a",
-      "explanation": "The function example() explicitly returns the number 42. In Python, this is a valid return statement."
-    }
-  ],
-  "settings": {
-    "timeLimit": 600,
-    "shuffleQuestions": false
-  }
-}, null, 2))}
-                    >
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                    <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm max-h-[60vh] whitespace-pre-wrap">
-{`{
-  "id": "unique_id",
-  "title": "Quiz Title",
-  "description": "A detailed description of your quiz that supports **markdown**",
-  "questions": [
-    {
-      "id": "q1",
-      "type": "MCQ",
-      "text": "Question text here",
-      "choices": [
-        {
-          "id": "a",
-          "text": "Option text"
-        }
-      ],
-      "correctAnswer": "a",
-      "explanation": "Explanation here"
-    }
-  ],
-  "settings": {
-    "timeLimit": 10800,
-    "shuffleQuestions": false
-  }
-}`}
-                    </pre>
-                  </div>
-                  <Button onClick={copyPromptToClipboard} className="w-full">
-                    <Copy className="h-4 w-4 mr-2" />
-                    Copy Prompt
-                  </Button>
-                </DialogDescription>
-              </DialogHeader>
-            </DialogContent>
-          </Dialog>
+          
           <Button onClick={handleCreateQuiz}>
             <Plus className="h-4 w-4 mr-2" />
             Create Quiz
@@ -261,7 +99,7 @@ here is the format, strictly follow this format only :
           <ThemeToggle />
         </div>
       </div>
-      
+
       <div className="flex gap-4 items-center mb-6">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
@@ -287,82 +125,116 @@ here is the format, strictly follow this format only :
         </Select>
       </div>
 
-      <Tabs defaultValue="list" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="list">Quiz List</TabsTrigger>
-          <TabsTrigger value="json">Create from JSON</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="list" className="space-y-4">
-          {filteredQuizzes.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">No quizzes found</p>
+      <div className="flex items-center justify-between mb-4">
+        <Tabs defaultValue="list" className="w-full">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center">
+            <TabsList>
+              <TabsTrigger value="list">Quiz List</TabsTrigger>
+              <TabsTrigger value="json">Create from JSON</TabsTrigger>
+            </TabsList>
+            <Button className="ml-2 justify-center"variant="outline" onClick={() => navigate('/results')}>
+            <BarChart className="h-4 w-4 mr-2" />
+            View Results
+          </Button>
             </div>
-          ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {filteredQuizzes.map((quiz) => (
-                <div
-                  key={quiz.id}
-                  className="bg-card p-6 rounded-lg shadow-sm border border-border"
-                >
-                  <h2 className="text-xl font-semibold mb-2">{quiz.title}</h2>
-                  <p className="text-muted-foreground mb-4">{quiz.description}</p>
-                  <div className="flex flex-col md:flex-row gap-2 mt-4">
-                    <Button
-                      variant="default"
-                      size="sm"
-                      onClick={() => navigate(`/quiz/${quiz.id}`)}
-                    >
-                      Start Quiz
-                    </Button>
-                    {localStorage.getItem(`quiz-${quiz.id}-save`) && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive">Clear All Data</Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action will permanently delete all your quizzes and saved progress.
+                    This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => {
+                      window.localStorage.clear();
+                      setQuizzes([]);
+                      toast.success("All data cleared successfully");
+                    }}
+                  >
+                    Clear All Data
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+
+          <TabsContent value="list" className="space-y-4">
+            {filteredQuizzes.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">No quizzes found</p>
+              </div>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {filteredQuizzes.map((quiz) => (
+                  <div
+                    key={quiz.id}
+                    className="bg-card p-6 rounded-lg shadow-sm border border-border"
+                  >
+                    <h2 className="text-xl font-semibold mb-2">{quiz.title}</h2>
+                    <p className="text-muted-foreground mb-4">{quiz.description}</p>
+                    <div className="flex flex-col md:flex-row gap-2 mt-4">
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => navigate(`/quiz/${quiz.id}`)}
+                      >
+                        Start Quiz
+                      </Button>
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleClearSave(quiz.id)}
+                        onClick={() => handleClearSaves(quiz.id)}
                       >
-                        Clear Save
+                        Clear Saves
                       </Button>
-                    )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => navigate(`/quiz/${quiz.id}/edit`)}
-                    >
-                      Edit
-                    </Button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="destructive" size="sm">
-                          Delete
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete Quiz</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Are you sure you want to delete this quiz? This action cannot be undone.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => handleDelete(quiz.id)}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigate(`/quiz/${quiz.id}/edit`)}
+                      >
+                        Edit
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="destructive" size="sm">
                             Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Quiz</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete this quiz? This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDelete(quiz.id)}>
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </TabsContent>
+                ))}
+              </div>
+            )}
+          </TabsContent>
 
-        <TabsContent value="json">
-          <JsonQuizCreator onQuizCreate={(quiz) => setQuizzes([...quizzes, quiz])} />
-        </TabsContent>
-      </Tabs>
+          <TabsContent value="json">
+            <JsonQuizCreator onQuizCreate={(quiz) => setQuizzes([...quizzes, quiz])} />
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 }
