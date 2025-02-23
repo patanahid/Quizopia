@@ -75,6 +75,60 @@ export function HomePage({ quizzes, setQuizzes }: HomePageProps) {
     navigate(`/quiz/new`);
   };
 
+
+
+  const copyPromptToClipboard = () => {
+    const promptText = `Make these pdf questions into this format,make sure that you yourself add the answers from the answer key strictly in the correct answer field, not from your own knowledge, you can only add your info in the explanation and satisfactory explanation in Hindi, if there is any mistake in the answer key you think, mention that in the explanation.Use your mind and context to make the questions format and options understandable if they seem corrupted, make sure the options dont contain the a b c d, part of the options again, but if there are some statements then also add them,  use your mind to look if the formatting makes sense and what could be the correct one, the answer you write as correct answer should be from the key. format the tubular options into this format a) A - 1, b - 2, ...., make sure there are no errors, dont stop untill you write the full code, youcan use markdown tables make sure the headers contain the info about the rows, not separate info, in questions, and do not hullucinate, do not write questions that youare not provided with and dont guess questions, make sure you not skip the id of the options, make sure it doesnt have errors, the time should be 3 hours.DONT ADD ANY EXPLAINATION IN HINDI INFO, MAKE THE EXPLAINATION KEY'S VALUE IN HINDI, there should be only one explaination key DONT NOT STOP UNITLL YOU HAVE PROVIDED FULL OUTPUT, IN ONE RESPONSE
+ 
+
+here is the format, strictly follow this format only :
+
+{
+  "id": "unique_id",
+  "title": "Quiz Title",
+  "description": "A detailed description of your quiz that supports **markdown**",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "MCQ",
+      "text": "# Main Question\n\nWhat is the output of this code?\n\n (backticks)python\ndef example(): \n    return 42(backticks) \n\nChoose the correct answer:",
+      "choices": [
+        {
+          "id": "a",
+          "text": "42"
+        },
+        {
+          "id": "b",
+          "text": "None"
+        },
+        {
+          "id": "c",
+          "text": "An error"
+        },
+        {
+          "id": "d",
+          "text": "undefined"
+        }
+      ],
+      "correctAnswer": "a",
+      "explanation": "The function example() explicitly returns the number 42. In Python, this is a valid return statement."
+    }
+  ],
+  "settings": {
+    "timeLimit": 600,
+    "shuffleQuestions": false
+  }
+}`;
+    navigator.clipboard.writeText(promptText);
+    toast.success("Prompt copied to clipboard!");
+  };
+
+  const copyCodeToClipboard = (code: string) => {
+    navigator.clipboard.writeText(code);
+    toast.success("Code copied to clipboard!");
+  };
+
+
   const filteredQuizzes = quizzes
     .filter((quiz) =>
       quiz.title.toLowerCase().includes(searchTerm.toLowerCase())
@@ -91,7 +145,98 @@ export function HomePage({ quizzes, setQuizzes }: HomePageProps) {
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">Quizopia</h1>
         <div className="flex items-center gap-4">
-          
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <Copy className="h-4 w-4 mr-2" />
+                Copy Prompt
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-3xl">
+              <DialogHeader>
+                <DialogTitle>Quiz Format Prompt</DialogTitle>
+                <DialogDescription className="space-y-4">
+                  <p>Use this format to create quizzes from PDF questions:</p>
+                  <div className="relative">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="absolute top-2 right-2 h-8 w-8 p-0"
+                      onClick={() => copyCodeToClipboard(JSON.stringify({
+                        "id": "unique_id",
+                        "title": "Quiz Title",
+                        "description": "A detailed description of your quiz that supports **markdown**",
+                        "questions": [
+                          {
+                            "id": "q1",
+                            "type": "MCQ",
+                            "text": "# Main Question\n\nWhat is the output of this code?\n\n```python\ndef example():\n    return 42\n```\n\nChoose the correct answer:",
+                            "choices": [
+                              {
+                                "id": "a",
+                                "text": "42"
+                              },
+                              {
+                                "id": "b",
+                                "text": "None"
+                              },
+                              {
+                                "id": "c",
+                                "text": "An error"
+                              },
+                              {
+                                "id": "d",
+                                "text": "undefined"
+                              }
+                            ],
+                            "correctAnswer": "a",
+                            "explanation": "The function example() explicitly returns the number 42. In Python, this is a valid return statement."
+                          }
+                        ],
+                        "settings": {
+                          "timeLimit": 600,
+                          "shuffleQuestions": false
+                        }
+                      }, null, 2))}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                    <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm max-h-[60vh] whitespace-pre-wrap">
+                      {`{
+  "id": "unique_id",
+  "title": "Quiz Title",
+  "description": "A detailed description of your quiz that supports **markdown**",
+  "questions": [
+    {
+      "id": "q1",
+      "type": "MCQ",
+      "text": "Question text here",
+      "choices": [
+        {
+          "id": "a",
+          "text": "Option text"
+        }
+      ],
+      "correctAnswer": "a",
+      "explanation": "Explanation here"
+    }
+  ],
+  "settings": {
+    "timeLimit": 10800,
+    "shuffleQuestions": false
+  }
+}`}
+                    </pre>
+                  </div>
+                  <Button onClick={copyPromptToClipboard} className="w-full">
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copy Prompt
+                  </Button>
+                </DialogDescription>
+              </DialogHeader>
+            </DialogContent>
+          </Dialog>
+
           <Button onClick={handleCreateQuiz}>
             <Plus className="h-4 w-4 mr-2" />
             Create Quiz
@@ -129,14 +274,14 @@ export function HomePage({ quizzes, setQuizzes }: HomePageProps) {
         <Tabs defaultValue="list" className="w-full">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center">
-            <TabsList>
-              <TabsTrigger value="list">Quiz List</TabsTrigger>
-              <TabsTrigger value="json">Create from JSON</TabsTrigger>
-            </TabsList>
-            <Button className="ml-2 justify-center"variant="outline" onClick={() => navigate('/results')}>
-            <BarChart className="h-4 w-4 mr-2" />
-            View Results
-          </Button>
+              <TabsList>
+                <TabsTrigger value="list">Quiz List</TabsTrigger>
+                <TabsTrigger value="json">Create from JSON</TabsTrigger>
+              </TabsList>
+              <Button className="ml-2 justify-center" variant="outline" onClick={() => navigate('/results')}>
+                <BarChart className="h-4 w-4 mr-2" />
+                View Results
+              </Button>
             </div>
             <AlertDialog>
               <AlertDialogTrigger asChild>

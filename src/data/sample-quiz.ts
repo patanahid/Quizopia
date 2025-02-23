@@ -46,33 +46,7 @@ export const sampleQuiz: Quiz = {
       explanation: "Python is a programming language, not a JavaScript framework. React, Angular, and Vue are all JavaScript frameworks.",
     },
     {
-      id: "q5",
-      type: "MCQ",
-      text: "Which of these is NOT a JavaScript framework?",
-      choices: [
-        { id: "a", text: "React" },
-        { id: "b", text: "Angular" },
-        { id: "c", text: "Python" },
-        { id: "d", text: "Vue" },
-      ],
-      correctAnswer: "c",
-      explanation: "Python is a programming language, not a JavaScript framework. React, Angular, and Vue are all JavaScript frameworks.",
-    },
-    {
       id: "q4",
-      type: "MCQ",
-      text: "Which of these is NOT a JavaScript framework?",
-      choices: [
-        { id: "a", text: "React" },
-        { id: "b", text: "Angular" },
-        { id: "c", text: "Python" },
-        { id: "d", text: "Vue" },
-      ],
-      correctAnswer: "c",
-      explanation: "Python is a programming language, not a JavaScript framework. React, Angular, and Vue are all JavaScript frameworks.",
-    },
-    {
-      id: "q5",
       type: "MCQ",
       text: "Which of these is NOT a JavaScript framework?",
       choices: [
