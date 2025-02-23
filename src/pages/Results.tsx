@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuizResults } from "@/hooks/useQuizResults";
+import { Header } from "@/components/Header";
 import { useNavigate, useParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -205,7 +206,9 @@ export default function Results() {
 
     // Show the result
     return (
-      <div className="container mx-auto p-4 max-w-4xl">
+      <>
+        <Header />
+        <div className="container mx-auto p-4 max-w-4xl">
         <div className="mb-8">
           <Button
             variant="outline"
@@ -220,12 +223,15 @@ export default function Results() {
             onRetry={() => navigate(`/quiz/${result.quizId}`)}
           />
         </div>
-      </div>
+        </div>
+      </>
     );
   }
 
   return (
-    <div className="container mx-auto p-4 max-w-4xl">
+    <>
+      <Header />
+      <div className="container mx-auto p-4 max-w-4xl">
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-3xl font-bold">Quiz Results</h1>
         <div className="flex gap-4">
@@ -352,6 +358,7 @@ export default function Results() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+      </div>
+    </>
   );
 }

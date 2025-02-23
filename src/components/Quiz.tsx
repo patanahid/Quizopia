@@ -650,14 +650,15 @@ export function Quiz({ quiz, onComplete, onStateUpdate, initialState }: QuizProp
 
             <div className="space-y-6">
               <div className="prose dark:prose-invert max-w-none">
-                <Markdown
-                  remarkPlugins={[remarkGfm]}
-                  rehypePlugins={[rehypeRaw]}
-                  components={markdownComponents}
-                  className="prose dark:prose-invert max-w-none"
-                >
-                  {currentQuestion.text}
-                </Markdown>
+                <div className="prose dark:prose-invert max-w-none">
+                  <Markdown
+                    remarkPlugins={[remarkGfm]}
+                    rehypePlugins={[rehypeRaw]}
+                    components={markdownComponents}
+                  >
+                    {currentQuestion.text}
+                  </Markdown>
+                </div>
               </div>
 
               <div className="space-y-4">
@@ -692,14 +693,15 @@ export function Quiz({ quiz, onComplete, onStateUpdate, initialState }: QuizProp
                       )}
                     </div>
                     <div className="prose dark:prose-invert flex-1 [&>p]:m-0">
-                      <Markdown
-                        remarkPlugins={[remarkGfm]}
-                        rehypePlugins={[rehypeRaw]}
-                        components={markdownComponents}
-                        className="prose dark:prose-invert"
-                      >
-                        {choice.text}
-                      </Markdown>
+                      <div className="prose dark:prose-invert">
+                        <Markdown
+                          remarkPlugins={[remarkGfm]}
+                          rehypePlugins={[rehypeRaw]}
+                          components={markdownComponents}
+                        >
+                          {choice.text}
+                        </Markdown>
+                      </div>
                     </div>
                   </div>
                 ))}

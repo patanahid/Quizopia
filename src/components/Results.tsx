@@ -1,4 +1,6 @@
 import { Quiz, QuizState } from "@/types/quiz";
+import { Header } from "@/components/Header";
+import { MessageCircleQuestion } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
@@ -148,7 +150,9 @@ export function Results({ quiz, state, onRetry }: ResultsProps) {
   };
 
   return (
-    <div className="container mx-auto p-4 max-w-4xl space-y-8 animate-fade-in">
+    <>
+      <Header />
+      <div className="container mx-auto p-4 max-w-4xl space-y-8 animate-fade-in">
       <Card className="p-6 bg-card text-card-foreground">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Score Section */}
@@ -384,10 +388,18 @@ export function Results({ quiz, state, onRetry }: ResultsProps) {
         />
       </div>
 
-      <div className="flex justify-center gap-4">
+      <div className="flex justify-center gap-4 mb-8">
         <Button onClick={onRetry} variant="outline">Retry Quiz</Button>
         <Button onClick={() => navigate("/")}>Back to Home</Button>
       </div>
-    </div>
+      </div>
+      
+      <footer className="border-t py-6 mt-8">
+        <div className="container flex items-center justify-center gap-2 text-muted-foreground">
+          <MessageCircleQuestion className="h-5 w-5" />
+          <p className="text-sm">Quizopia - Test your knowledge</p>
+        </div>
+      </footer>
+    </>
   );
 }
