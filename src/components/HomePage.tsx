@@ -78,47 +78,72 @@ export function HomePage({ quizzes, setQuizzes }: HomePageProps) {
 
 
   const copyPromptToClipboard = () => {
-    const promptText = `Make these pdf questions into this format,make sure that you yourself add the answers from the answer key strictly in the correct answer field, not from your own knowledge, you can only add your info in the explanation and satisfactory explanation in Hindi, if there is any mistake in the answer key you think, mention that in the explanation.Use your mind and context to make the questions format and options understandable if they seem corrupted, make sure the options dont contain the a b c d, part of the options again, but if there are some statements then also add them,  use your mind to look if the formatting makes sense and what could be the correct one, the answer you write as correct answer should be from the key. format the tubular options into this format a) A - 1, b - 2, ...., make sure there are no errors, dont stop untill you write the full code, youcan use markdown tables make sure the headers contain the info about the rows, not separate info, in questions, and do not hullucinate, do not write questions that youare not provided with and dont guess questions, make sure you not skip the id of the options, make sure it doesnt have errors, the time should be 3 hours.DONT ADD ANY EXPLAINATION IN HINDI INFO, MAKE THE EXPLAINATION KEY'S VALUE IN HINDI, there should be only one explaination key DONT NOT STOP UNITLL YOU HAVE PROVIDED FULL OUTPUT, IN ONE RESPONSE
+    const promptText = `Make these pdf questions into this format,make sure that you yourself add the answers from the answer key strictly in the correct answer field, not from your own knowledge, you can only add your info in the explanation and satisfactory explanation in hindi, dont just repeat the answer, give reasonable explanation, if there is any mistake in the answer key you think, mention that in the explanation.Use your mind and context to make the questions format and options understandable if they seem corrupted, make sure the options dont contain the a b c d, part of the options again, but if there are some statements then also add them,  use your mind to look if the formatting makes sense and what could be the correct one, the answer you write as correct answer should be from the key. format the tubular options into this format a) A - 1, b - 2, ...., make sure there are no errors, dont stop untill you write the full code, youcan use markdown tables make sure the headers contain the info about the rows, not separate info, in questions, and do not hullucinate, do not write questions that youare not provided with and dont guess questions, make sure you not skip the id of the options, make sure it doesnt have errors, the time should be 3 hours.DONT ADD ANY EXPLAINATION IN HINDI INFO, MAKE THE EXPLAINATION KEY'S VALUE IN HINDI, there should be only one explaination key DONT NOT STOP UNITLL YOU HAVE PROVIDED FULL OUTPUT, IN ONE RESPONSE, make sure that you use markdown tables, when tables are used in the questions, also provide the statements correctly in questions with statements, with appropriate options, make sure json is properly formatted, dont add headings, have proper space between \n's
  
 
-here is the format, strictly follow this format only :
-
-{
-  "id": "unique_id",
-  "title": "Quiz Title",
-  "description": "A detailed description of your quiz that supports **markdown**",
-  "questions": [
+    here is the format, strictly follow this format only :
+    
     {
-      "id": "q1",
-      "type": "MCQ",
-      "text": "# Main Question\n\nWhat is the output of this code?\n\n (backticks)python\ndef example(): \n    return 42(backticks) \n\nChoose the correct answer:",
-      "choices": [
+      "id": "unique_id",
+      "title": "Quiz Title",
+      "description": "A detailed description of your quiz that supports **markdown**",
+      "questions": [
         {
-          "id": "a",
-          "text": "42"
+          "id": "q1",
+          "type": "MCQ",
+          "text": "प्रश्न 11\nसुमेलित कीजिए:\n\n | सूची 1       | सूची 2      |\n | :------------ | :---------- |\n | a स्थिर स्थल | 1. डार्विन   |\n | b हिम नियंत्रण | 2. आगासीज  |\n | c निम्मज्जन   | 3. मरें    |\n | d अपरदन     | 4. डेली    |\n\nकूट:",
+          "choices": [
+            {
+              "id": "a",
+              "text": "a - 3, b - 4, c - 1, d - 2"
+            },
+            {
+              "id": "b",
+              "text": "a - 1, b - 2, c - 3, d - 4"
+            },
+            {
+              "id": "c",
+              "text": "a - 3, b - 4, c - 2, d - 1"
+            },
+            {
+              "id": "d",
+              "text": "a - 1, b - 4, c - 3, d - 2"
+            }
+          ],
+          "correctAnswer": "a",
+          "explanation": "सही मिलान है:\na. स्थिर स्थल - 3. मरें\nb. हिम नियंत्रण - 4. डेली\nc. निम्मज्जन - 1. डार्विन\nd. अपरदन - 2. आगासीज, (add more explaination for this here, this is a remark you are not allowed to write like brackets here)" 
         },
         {
-          "id": "b",
-          "text": "None"
-        },
-        {
-          "id": "c",
-          "text": "An error"
-        },
-        {
-          "id": "d",
-          "text": "undefined"
+          "id": "q2",
+          "type": "MCQ",
+          "text": "प्रश्न 5\nनिम्नलिखित कथनों पर विचार कीजिए:\n1. लक्षद्वीप के महाद्वीपीय शेल्फ प्रवाल भितियों के कारण उत्पन्न हुए\n2. भारत पश्चिमी तट के महाद्वीपीय शेल्फ भ्रंशन और निमज्जन के कारण बने है\nउपर्युक्त कथनों में से कौनसे कथन सत्य है?",
+          "choices": [
+            {
+              "id": "a",
+              "text": "केवल 1"
+            },
+            {
+              "id": "b",
+              "text": "केवल 2"
+            },
+            {
+              "id": "c",
+              "text": "1 व 2 दोनों"
+            },
+            {
+              "id": "d",
+              "text": "न तो 1 और न ही 2"
+            }
+          ],
+          "correctAnswer": "c",
+          "explanation": "दोनों कथन सत्य हैं। लक्षद्वीप महाद्वीपीय शेल्फ प्रवाल भित्तियों से बने हैं और भारत का पश्चिमी तट महाद्वीपीय शेल्फ भ्रंशन और निमज्जन के कारण बना है।"
         }
       ],
-      "correctAnswer": "a",
-      "explanation": "The function example() explicitly returns the number 42. In Python, this is a valid return statement."
-    }
-  ],
-  "settings": {
-    "timeLimit": 600,
-    "shuffleQuestions": false
-  }
-}`;
+      "settings": {
+        "timeLimit": 600,
+        "shuffleQuestions": false
+      }
+    }`;
     navigator.clipboard.writeText(promptText);
     toast.success("Prompt copied to clipboard!");
   };
