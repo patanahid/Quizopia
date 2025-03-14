@@ -3,9 +3,9 @@ import type { Quiz, QuizState } from "@/types/quiz";
 import { QuestionStatus } from "./QuestionStatus";
 import Timer from "./Timer";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { ArrowLeft, ArrowRight, BookmarkPlus, Save, Clock } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookmarkPlus, Save } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { QuizProgress } from "./QuizProgress";
@@ -22,6 +22,7 @@ import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, A
 import { CodeBlock } from "@/components/ui/code-block";
 import { useSaveSystem } from "@/hooks/useSaveSystem";
 import { SaveSlotDialog } from "./SaveSlotDialog";
+import { Badge } from "@/components/ui/badge";
 
 const markdownComponents: Components = {
   pre: ({ children }) => (
@@ -104,8 +105,6 @@ export function Quiz({ quiz, onComplete, onStateUpdate, initialState }: QuizProp
       };
     }
 
-    // Check for saves but don't automatically load them
-    checkForSaves();
     return freshState;
   });
 
@@ -128,6 +127,147 @@ export function Quiz({ quiz, onComplete, onStateUpdate, initialState }: QuizProp
     }
   }, [quiz.id, checkForSaves]); // Only run on mount and quiz ID change
 
+  // Handle start quiz
+  const handleStartQuiz = () => {
+    // Clear any existing saves first
+    clearAllSaves();
+    
+    const newState = {
+      ...state,
+      isPaused: false,
+      startTime: Date.now()
+    };
+    
+    setState(newState);
+
+    // Show prominent notification
+    toast.success("Quiz started!", {
+      description: "Your progress will be automatically saved",
+      duration: 4000
+    });
+
+    // Create initial autosave
+    setupAutosave(newState);
+  };
+
+  // Handle start fresh quiz
+  const handleStartFresh = () => {
+    // Clear all saves first
+    clearAllSaves();
+    
+    const freshState = {
+      currentQuestionIndex: 0,
+      answers: Object.fromEntries(quiz.questions.map(q => [q.id, ''])),
+      markedForReview: [],
+      timeRemaining: quiz.settings.timeLimit,
+      isPaused: true,
+      startTime: Date.now(),
+      totalPausedTime: 0,
+      isComplete: false
+    };
+    
+    setState(freshState);
+    setShowLoadDialog(false);
+    toast.success("Quiz ready to start!");
+  };
+
+  // Handle load save
+  const handleLoadSave = (id: string) => {
+    console.log('Loading save:', id);
+    const loadedState = loadSave(id);
+    if (loadedState) {
+      console.log('Found save state:', loadedState);
+      
+      // Calculate total paused time and adjust start time
+      const now = Date.now();
+      const timeElapsed = now - loadedState.startTime;
+      const adjustedStartTime = now - timeElapsed;
+      
+      const updatedState = {
+        ...loadedState,
+        startTime: adjustedStartTime,
+        isPaused: false // Start the timer automatically
+      };
+      
+      setState(updatedState);
+      setShowLoadDialog(false);
+      
+      // Create a new autosave with the updated state
+      setupAutosave(updatedState);
+      
+      // Show the save dialog to display current saves
+      setShowSaveDialog(true);
+      
+      toast.success('Save loaded successfully! Timer started.');
+    } else {
+      console.log('No save state found, resetting to fresh state');
+      handleStartFresh();
+      toast.error("Could not load save. Starting fresh quiz.");
+    }
+  };
+
+  // Handle delete save
+  const handleDeleteSave = (id: string) => {
+    console.log('Deleting save:', id);
+    const slot = saveSlots.find(s => s.id === id);
+    console.log('Found slot:', slot);
+    
+    // Only reset state if deleting the currently loaded save or an autosave
+    const isCurrentSave = slot?.state.startTime === state.startTime;
+    
+    if (slot?.isAutosave || isCurrentSave) {
+      // Create fresh state
+      const freshState = {
+        currentQuestionIndex: 0,
+        answers: Object.fromEntries(quiz.questions.map(q => [q.id, ''])),
+        markedForReview: [],
+        timeRemaining: quiz.settings.timeLimit,
+        isPaused: true,
+        startTime: Date.now(),
+        totalPausedTime: 0,
+        isComplete: false
+      };
+      setState(freshState);
+      
+      if (slot?.isAutosave) {
+        toast.info("Autosave deleted. Quiz reset to start.", {
+          description: "A new autosave will be created when you resume",
+          duration: 4000
+        });
+      } else {
+        toast.info("Current save deleted. Quiz reset to start.");
+      }
+    } else {
+      toast.success("Save deleted successfully.");
+    }
+
+    // Delete the save
+    deleteSave(id);
+    setShowLoadDialog(false);
+    setShowSaveDialog(false);
+  };
+
+  // Handle clear all saves
+  const handleClearAllSaves = () => {
+    clearAllSaves();
+    // Reset to fresh state
+    const freshState = {
+      currentQuestionIndex: 0,
+      answers: Object.fromEntries(quiz.questions.map(q => [q.id, ''])),
+      markedForReview: [],
+      timeRemaining: quiz.settings.timeLimit,
+      isPaused: true,
+      startTime: Date.now(),
+      totalPausedTime: 0,
+      isComplete: false
+    };
+    setState(freshState);
+    setShowSaveDialog(false);
+    toast.info("Quiz reset. New autosave will be created when you start the quiz.", {
+      duration: 4000
+    });
+  };
+
   // Ensure saves are checked when quiz ID changes
   useEffect(() => {
     checkForSaves();
@@ -137,58 +277,6 @@ export function Quiz({ quiz, onComplete, onStateUpdate, initialState }: QuizProp
   useEffect(() => {
     console.log('Save slots updated:', saveSlots);
   }, [saveSlots]);
-
-  // Handle start quiz
-  const handleStartQuiz = () => {
-    setState(prev => ({
-      ...prev,
-      isPaused: false,
-      startTime: Date.now()
-    }));
-
-    // Show prominent notification
-    toast.success("Quiz started!", {
-      description: "Your progress will be automatically saved",
-      duration: 4000
-    });
-
-    // Create initial autosave
-    setupAutosave(state);
-  };
-
-  // Add button to check for saves
-  const handleCheckSaves = () => {
-    const hasSaves = checkForSaves();
-    if (hasSaves) {
-      setShowSaveDialog(true);
-      toast.info("Found existing saves!");
-    } else {
-      toast.info("No saves found");
-    }
-  };
-
-  // Setup autosave when the quiz starts or resumes
-  useEffect(() => {
-    let cleanup = () => {};
-    
-    if (!state.isPaused && !state.isComplete) {
-      cleanup = setupAutosave({
-        ...state,
-        timeRemaining: state.timeRemaining || quiz.settings.timeLimit
-      });
-      
-      // Only show notification on first autosave
-      const existingAutosave = saveSlots.find(slot => slot.isAutosave);
-      if (!existingAutosave) {
-        toast.info("Progress will be saved automatically", {
-          description: "Click 'Check Saves' to view your progress",
-          duration: 3000
-        });
-      }
-    }
-    
-    return () => cleanup();
-  }, [state.isPaused, state.isComplete, setupAutosave, quiz.settings.timeLimit]);
 
   // Update parent component on state changes
   useEffect(() => {
@@ -388,96 +476,6 @@ export function Quiz({ quiz, onComplete, onStateUpdate, initialState }: QuizProp
     toast.success("Quiz progress saved!");
   };
 
-  const handleLoadSave = (id: string) => {
-    console.log('Loading save:', id);
-    const loadedState = loadSave(id);
-    if (loadedState) {
-      console.log('Found save state:', loadedState);
-      setState(loadedState);
-      setShowLoadDialog(false);
-      
-      // Create a new autosave with the loaded state
-      setupAutosave(loadedState);
-      
-      // Show the save dialog to display current saves
-      setShowSaveDialog(true);
-      
-      toast.success(`Save loaded successfully! ${!loadedState.isPaused ? 'Timer resumed.' : 'Click play to start timer.'}`);
-    } else {
-      console.log('No save state found, resetting to fresh state');
-      handleStartFresh();
-      toast.error("Could not load save. Starting fresh quiz.");
-    }
-  };
-
-  const handleDeleteSave = (id: string) => {
-    console.log('Deleting save:', id);
-    const slot = saveSlots.find(s => s.id === id);
-    console.log('Found slot:', slot);
-    
-    // Only reset state if deleting the currently loaded save or an autosave
-    const isCurrentSave = slot?.state.startTime === state.startTime;
-    
-    if (slot?.isAutosave || isCurrentSave) {
-      // Create fresh state
-      const freshState = {
-        currentQuestionIndex: 0,
-        answers: Object.fromEntries(quiz.questions.map(q => [q.id, ''])),
-        markedForReview: [],
-        timeRemaining: quiz.settings.timeLimit,
-        isPaused: true,
-        startTime: Date.now(),
-        totalPausedTime: 0,
-        isComplete: false
-      };
-      setState(freshState);
-      
-      if (slot?.isAutosave) {
-        toast.info("Autosave deleted. Quiz reset to start.", {
-          description: "A new autosave will be created when you resume",
-          duration: 4000
-        });
-      } else {
-        toast.info("Current save deleted. Quiz reset to start.");
-      }
-    } else {
-      toast.success("Save deleted successfully.");
-    }
-
-    // Delete the save
-    deleteSave(id);
-    setShowLoadDialog(false);
-    setShowSaveDialog(false);
-
-    // Force a check for any remaining saves
-    setTimeout(() => {
-      const hasSaves = checkForSaves();
-      if (hasSaves) {
-        setShowSaveDialog(true);
-      }
-    }, 100);
-  };
-
-  const handleClearAllSaves = () => {
-    clearAllSaves();
-    // Reset to fresh state
-    const freshState = {
-      currentQuestionIndex: 0,
-      answers: {},
-      markedForReview: [],
-      timeRemaining: quiz.settings.timeLimit,
-      isPaused: true,
-      startTime: Date.now(),
-      totalPausedTime: 0,
-      isComplete: false
-    };
-    setState(freshState);
-    setShowSaveDialog(false);
-    toast.info("Quiz reset. New autosave will be created when you start the quiz.", {
-      duration: 4000
-    });
-  };
-
   const formatTime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
@@ -492,23 +490,6 @@ export function Quiz({ quiz, onComplete, onStateUpdate, initialState }: QuizProp
   };
 
   const currentQuestion = quiz.questions[state.currentQuestionIndex];
-
-  // Handle start fresh quiz
-  const handleStartFresh = () => {
-    const freshState = {
-      currentQuestionIndex: 0,
-      answers: {},
-      markedForReview: [],
-      timeRemaining: quiz.settings.timeLimit,
-      isPaused: true,
-      startTime: Date.now(),
-      totalPausedTime: 0,
-      isComplete: false
-    };
-    setState(freshState);
-    setShowLoadDialog(false);
-    toast.success("Quiz ready to start!");
-  };
 
   useEffect(() => {
     console.log('Time Remaining:', state.timeRemaining);
@@ -545,28 +526,40 @@ export function Quiz({ quiz, onComplete, onStateUpdate, initialState }: QuizProp
   return (
     <>
       <div className="container mx-auto p-4 max-w-4xl animate-fade-in">
-        <div className="flex flex-col gap-8">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-semibold">{quiz.title}</h1>
-            <div className="flex items-center gap-4 justify-end">
-              <Timer
-                initialTime={state.timeRemaining}
-                isPaused={state.isPaused}
-                onPauseToggle={handlePauseToggle}
-                onTimeUp={handleTimeUp}
-                onTick={handleTimeUpdate}
-              />
-              <ThemeToggle />
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowSaveDialog(true)}
-              >
-                <Save className="w-4 h-4 mr-2" />
-                Save Quiz
-              </Button>
-            </div>
-          </div>
+        <div className="flex flex-col gap-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl font-semibold tracking-tight">{quiz.title}</h1>
+                <Badge variant="outline" className="ml-2">
+                  {quiz.questions.length} questions
+                </Badge>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowSaveDialog(true)}
+                  className="h-8"
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  Save Progress
+                </Button>
+                <ThemeToggle />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <Timer
+                  initialTime={state.timeRemaining}
+                  isPaused={state.isPaused}
+                  onPauseToggle={handlePauseToggle}
+                  onTimeUp={handleTimeUp}
+                  onTick={handleTimeUpdate}
+                />
+              </div>
+            </CardContent>
+          </Card>
 
           <QuizProgress
             totalQuestions={quiz.questions.length}
@@ -574,54 +567,63 @@ export function Quiz({ quiz, onComplete, onStateUpdate, initialState }: QuizProp
             markedForReview={state.markedForReview.length}
           />
 
-          <div className="flex flex-wrap gap-2 p-4 bg-card rounded-lg shadow-sm">
-            {quiz.questions.map((question, index) => (
-              <QuestionStatus
-                key={question.id}
-                number={index + 1}
-                status={getQuestionStatus(question.id)}
-                isActive={index === state.currentQuestionIndex}
-                onClick={() => handleNavigate(index)}
-              />
-            ))}
-          </div>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex flex-wrap gap-2">
+                {quiz.questions.map((question, index) => (
+                  <QuestionStatus
+                    key={question.id}
+                    number={index + 1}
+                    status={getQuestionStatus(question.id)}
+                    isActive={index === state.currentQuestionIndex}
+                    onClick={() => handleNavigate(index)}
+                  />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
 
-          <Card className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-sm text-muted-foreground">
-                Question {state.currentQuestionIndex + 1} of {quiz.questions.length}
-              </span>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-muted-foreground">
+                  Question {state.currentQuestionIndex + 1} of {quiz.questions.length}
+                </span>
+                <Badge variant="secondary" className="ml-2">
+                  {formatTime(state.timeRemaining)}
+                </Badge>
+              </div>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handleMarkForReview}
-                className={state.markedForReview.includes(currentQuestion.id) ? "text-red-500" : ""}
+                className={cn(
+                  "h-8",
+                  state.markedForReview.includes(currentQuestion.id) && "text-red-500"
+                )}
               >
-                <BookmarkPlus className="w-4 h-4 mr-2" />
-                Mark for Review
+                <BookmarkPlus className="h-4 w-4 mr-2" />
+                {state.markedForReview.includes(currentQuestion.id) ? "Unmark" : "Mark for Review"}
               </Button>
-            </div>
-
-            <div className="space-y-6">
+            </CardHeader>
+            <CardContent className="space-y-6">
               <div className="prose dark:prose-invert max-w-none">
-                <div className="prose dark:prose-invert max-w-none">
-                  <Markdown
-                    remarkPlugins={[remarkGfm]}
-                    rehypePlugins={[rehypeRaw]}
-                    components={markdownComponents}
-                  >
-                    {currentQuestion.text}
-                  </Markdown>
-                </div>
+                <Markdown
+                  remarkPlugins={[remarkGfm]}
+                  rehypePlugins={[rehypeRaw]}
+                  components={markdownComponents}
+                >
+                  {currentQuestion.text}
+                </Markdown>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {currentQuestion.choices.map((choice) => (
                   <div
                     key={choice.id}
                     onClick={() => handleAnswer(choice.id)}
                     className={cn(
-                      "flex items-start space-x-3 p-3 rounded-lg border cursor-pointer transition-colors",
+                      "flex items-start space-x-3 p-4 rounded-lg border cursor-pointer transition-colors",
                       {
                         "bg-primary/5 border-primary": state.answers[currentQuestion.id] === choice.id,
                         "hover:bg-muted": state.answers[currentQuestion.id] !== choice.id,
@@ -637,56 +639,55 @@ export function Quiz({ quiz, onComplete, onStateUpdate, initialState }: QuizProp
                     }}
                   >
                     <div className={cn(
-                      "w-4 h-4 mt-1 rounded-full border-2 flex-shrink-0",
+                      "w-5 h-5 mt-1 rounded-full border-2 flex-shrink-0",
                       state.answers[currentQuestion.id] === choice.id
                         ? "border-primary bg-primary"
                         : "border-muted-foreground"
                     )}>
                       {state.answers[currentQuestion.id] === choice.id && (
-                        <div className="w-2 h-2 m-0.5 rounded-full bg-white" />
+                        <div className="w-2.5 h-2.5 m-0.5 rounded-full bg-white" />
                       )}
                     </div>
                     <div className="prose dark:prose-invert flex-1 [&>p]:m-0">
-                      <div className="prose dark:prose-invert">
-                        <Markdown
-                          remarkPlugins={[remarkGfm]}
-                          rehypePlugins={[rehypeRaw]}
-                          components={markdownComponents}
-                        >
-                          {choice.text}
-                        </Markdown>
-                      </div>
+                      <Markdown
+                        remarkPlugins={[remarkGfm]}
+                        rehypePlugins={[rehypeRaw]}
+                        components={markdownComponents}
+                      >
+                        {choice.text}
+                      </Markdown>
                     </div>
                   </div>
                 ))}
               </div>
-            </div>
-          </Card>
-
-          <div className="flex justify-between">
-            <Button
-              variant="outline"
-              onClick={() => handleNavigate(state.currentQuestionIndex - 1)}
-              disabled={state.currentQuestionIndex === 0}
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Previous
-            </Button>
-            {state.currentQuestionIndex === quiz.questions.length - 1 ? (
-              <Button onClick={handleComplete}>
-                Complete Quiz
-              </Button>
-            ) : (
+            </CardContent>
+            <CardFooter className="flex justify-between pt-4">
               <Button
                 variant="outline"
-                onClick={() => handleNavigate(state.currentQuestionIndex + 1)}
-                disabled={state.currentQuestionIndex === quiz.questions.length - 1}
+                onClick={() => handleNavigate(state.currentQuestionIndex - 1)}
+                disabled={state.currentQuestionIndex === 0}
+                className="h-9"
               >
-                Next
-                <ArrowRight className="w-4 h-4 ml-2" />
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Previous
               </Button>
-            )}
-          </div>
+              {state.currentQuestionIndex === quiz.questions.length - 1 ? (
+                <Button onClick={handleComplete} className="h-9">
+                  Complete Quiz
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  onClick={() => handleNavigate(state.currentQuestionIndex + 1)}
+                  disabled={state.currentQuestionIndex === quiz.questions.length - 1}
+                  className="h-9"
+                >
+                  Next
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              )}
+            </CardFooter>
+          </Card>
         </div>
       </div>
 
@@ -717,11 +718,13 @@ export function Quiz({ quiz, onComplete, onStateUpdate, initialState }: QuizProp
               <p>Found {saveSlots.length} saved {saveSlots.length === 1 ? 'session' : 'sessions'}.</p>
               <div className="space-y-2">
                 {saveSlots.map((slot) => (
-                  <div key={slot.id} className="flex items-center justify-between p-2 rounded-lg border bg-card">
+                  <div key={slot.id} className="flex items-center justify-between p-3 rounded-lg border bg-card">
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{slot.name}</span>
                       {slot.isAutosave && (
-                        <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">Auto</span>
+                        <Badge variant="secondary" className="ml-2">
+                          Auto
+                        </Badge>
                       )}
                       <span className="text-sm text-muted-foreground">
                         ({format(slot.timestamp, 'MMM d, h:mm a')})
@@ -738,6 +741,7 @@ export function Quiz({ quiz, onComplete, onStateUpdate, initialState }: QuizProp
                           toast.success(`Save loaded successfully! ${!loadedState.isPaused ? 'Timer resumed.' : 'Click play to start timer.'}`);
                         }
                       }}
+                      className="h-8"
                     >
                       Load
                     </Button>
@@ -747,13 +751,13 @@ export function Quiz({ quiz, onComplete, onStateUpdate, initialState }: QuizProp
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleStartFresh}>
+            <AlertDialogCancel onClick={handleStartFresh} className="h-9">
               Start Fresh Quiz
             </AlertDialogCancel>
             <AlertDialogAction onClick={() => {
               setShowLoadDialog(false);
               setShowSaveDialog(true);
-            }}>
+            }} className="h-9">
               View All Saves
             </AlertDialogAction>
           </AlertDialogFooter>

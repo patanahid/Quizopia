@@ -133,10 +133,15 @@ export default function Results() {
   // Loading state
   if (isLoading && resultId) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold mb-2">Loading Results...</h2>
-          <p className="text-muted-foreground">Please wait while we load your quiz results.</p>
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="container py-6">
+          <div className="flex items-center justify-center py-20">
+            <div className="text-center">
+              <h2 className="text-xl font-semibold mb-2">Loading Results...</h2>
+              <p className="text-muted-foreground">Please wait while we load your quiz results.</p>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -145,10 +150,17 @@ export default function Results() {
   // Error state
   if (error) {
     return (
-      <div className="container mx-auto p-4 text-center">
-        <h2 className="text-xl font-semibold mb-2">Error</h2>
-        <p className="text-muted-foreground mb-4">{error}</p>
-        <Button onClick={() => navigate("/results")}>View All Results</Button>
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="container py-6">
+          <div className="flex items-center justify-center py-20">
+            <div className="text-center">
+              <h2 className="text-xl font-semibold mb-2">Error</h2>
+              <p className="text-muted-foreground mb-4">{error}</p>
+              <Button onClick={() => navigate("/results")}>View All Results</Button>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -196,169 +208,168 @@ export default function Results() {
     // If still no result, show error
     if (!result) {
       return (
-        <div className="container mx-auto p-4 text-center">
-          <h2 className="text-xl font-semibold mb-2">Result Not Found</h2>
-          <p className="text-muted-foreground mb-4">The quiz result you're looking for could not be found.</p>
-          <Button onClick={() => navigate("/results")}>View All Results</Button>
+        <div className="min-h-screen bg-background">
+          <Header />
+          <div className="container py-6">
+            <div className="flex items-center justify-center py-20">
+              <div className="text-center">
+                <h2 className="text-xl font-semibold mb-2">Result Not Found</h2>
+                <p className="text-muted-foreground mb-4">The quiz result you're looking for could not be found.</p>
+                <Button onClick={() => navigate("/results")}>View All Results</Button>
+              </div>
+            </div>
+          </div>
         </div>
       );
     }
 
     // Show the result
     return (
-      <>
+      <div className="min-h-screen bg-background">
         <Header />
-        <div className="container mx-auto p-4 max-w-4xl">
-        <div className="mb-8">
-          <Button
-            variant="outline"
-            onClick={() => navigate("/results")}
-            className="mb-4"
-          >
-            ← Back to Results
-          </Button>
+        <div className="container py-6">
+          <h1 className="text-3xl font-bold mb-6">Quiz Result</h1>
           <QuizResults
             quiz={result.quizSnapshot}
             state={result.state}
             onRetry={() => navigate(`/quiz/${result.quizId}`)}
           />
         </div>
-        </div>
-      </>
+      </div>
     );
   }
 
   return (
-    <>
+    <div className="min-h-screen bg-background">
       <Header />
-      <div className="container mx-auto p-4 max-w-4xl">
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-3xl font-bold">Quiz Results</h1>
-        <div className="flex gap-4">
-          <Select value={filter} onValueChange={(value: FilterOption) => setFilter(value)}>
-            <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder="Filter results" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Results</SelectItem>
-              <SelectItem value="passed">Passed</SelectItem>
-              <SelectItem value="failed">Failed</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={sort} onValueChange={(value: SortOption) => setSort(value)}>
-            <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder="Sort by" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="date">Date</SelectItem>
-              <SelectItem value="score">Score</SelectItem>
-              <SelectItem value="title">Quiz Title</SelectItem>
-            </SelectContent>
-          </Select>
+      <div className="container py-6">
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-3xl font-bold">Quiz Results</h1>
+          <div className="flex gap-4">
+            <Select value={filter} onValueChange={(value: FilterOption) => setFilter(value)}>
+              <SelectTrigger className="w-[150px]">
+                <SelectValue placeholder="Filter results" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Results</SelectItem>
+                <SelectItem value="passed">Passed</SelectItem>
+                <SelectItem value="failed">Failed</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={sort} onValueChange={(value: SortOption) => setSort(value)}>
+              <SelectTrigger className="w-[150px]">
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="date">Date</SelectItem>
+                <SelectItem value="score">Score</SelectItem>
+                <SelectItem value="title">Quiz Title</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-      </div>
 
-      {sortedResults.length > 0 ? (
-        <div className="space-y-6">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Quiz Title</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Score</TableHead>
-                <TableHead>Stats</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {sortedResults.map((result) => (
-                <TableRow key={result.id}>
-                  <TableCell className="font-medium">{result.quizTitle}</TableCell>
-                  <TableCell>
-                    {format(result.timestamp, "MMM d, yyyy h:mm a")}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <div
-                        className={`text-lg font-bold ${
-                          result.score.percentage >= 60
-                            ? "text-green-500"
-                            : "text-red-500"
-                        }`}
-                      >
-                        {result.score.percentage.toFixed(1)}%
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        ({result.score.total.toFixed(1)}/{result.quizSnapshot.questions.length})
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-1 text-green-500">
-                        <CheckCircle2 className="w-4 h-4" />
-                        <span>{result.score.correct}</span>
-                      </div>
-                      <div className="flex items-center gap-1 text-red-500">
-                        <XCircle className="w-4 h-4" />
-                        <span>{result.score.incorrect}</span>
-                      </div>
-                      <div className="flex items-center gap-1 text-muted-foreground">
-                        <HelpCircle className="w-4 h-4" />
-                        <span>{result.score.notAttempted}</span>
-                      </div>
-                      <div className="flex items-center gap-1 text-blue-500">
-                        <Clock className="w-4 h-4" />
-                        <span>{Math.floor(result.timeTaken / 60)}m</span>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => navigate(`/results/${result.id}`)}
-                      >
-                        <BarChart className="w-4 h-4 mr-1" />
-                        Details
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-destructive"
-                        onClick={() => handleDeleteResult(result.id)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
+        {sortedResults.length > 0 ? (
+          <div className="space-y-6">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Quiz Title</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Score</TableHead>
+                  <TableHead>Stats</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      ) : (
-        <Card className="p-8 text-center">
-          <p className="text-muted-foreground">No quiz results found</p>
-        </Card>
-      )}
+              </TableHeader>
+              <TableBody>
+                {sortedResults.map((result) => (
+                  <TableRow key={result.id}>
+                    <TableCell className="font-medium">{result.quizTitle}</TableCell>
+                    <TableCell>
+                      {format(result.timestamp, "MMM d, yyyy h:mm a")}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <div
+                          className={`text-lg font-bold ${
+                            result.score.percentage >= 60
+                              ? "text-green-500"
+                              : "text-red-500"
+                          }`}
+                        >
+                          {result.score.percentage.toFixed(1)}%
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          ({result.score.total.toFixed(1)}/{result.quizSnapshot.questions.length})
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-1 text-green-500">
+                          <CheckCircle2 className="w-4 h-4" />
+                          <span>{result.score.correct}</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-red-500">
+                          <XCircle className="w-4 h-4" />
+                          <span>{result.score.incorrect}</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-muted-foreground">
+                          <HelpCircle className="w-4 h-4" />
+                          <span>{result.score.notAttempted}</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-blue-500">
+                          <Clock className="w-4 h-4" />
+                          <span>{Math.floor(result.timeTaken / 60)}m</span>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => navigate(`/results/${result.id}`)}
+                        >
+                          <BarChart className="w-4 h-4 mr-1" />
+                          Details
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-destructive"
+                          onClick={() => handleDeleteResult(result.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        ) : (
+          <Card className="p-8 text-center">
+            <p className="text-muted-foreground">No quiz results found</p>
+          </Card>
+        )}
 
-      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Result</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete this quiz result? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete}>Delete</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Result</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete this quiz result? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmDelete}>Delete</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
-    </>
+    </div>
   );
 }

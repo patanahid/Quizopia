@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import CreateQuiz from "./pages/CreateQuiz";
 import Results from "./pages/Results";
+import JsonEditQuiz from "./pages/JsonEditQuiz";
 
 const queryClient = new QueryClient();
 
@@ -23,6 +24,7 @@ function App() {
                 <Route path="/quiz/new" element={<CreateQuiz />} />
                 <Route path="/quiz/:id" element={<Index />} />
                 <Route path="/quiz/:id/edit" element={<Index />} />
+                <Route path="/quiz/:id/json-edit" element={<JsonEditQuiz />} />
                 <Route path="/results" element={<Results />} />
                 <Route path="/results/:resultId" element={<Results />} />
                 <Route path="*" element={<NotFound />} />

@@ -53,21 +53,19 @@ export function useSaveSystem({
     return false;
   }, [quizId]);
 
-  // Load saves from localStorage
+  // Load saves from localStorage on mount and when quizId changes
   useEffect(() => {
     console.log('Initial load of saves for quiz:', quizId);
-    const hasSaves = checkForSaves();
-    console.log('Initial load found saves:', hasSaves);
-  }, [checkForSaves, quizId]);
-
-  // Debug whenever saveSlots change
-  useEffect(() => {
-    console.log('Save slots updated:', saveSlots);
-  }, [saveSlots]);
+    checkForSaves();
+  }, [quizId, checkForSaves]);
 
   // Save to localStorage whenever slots change
   useEffect(() => {
-    localStorage.setItem(`quiz-${quizId}-saves`, JSON.stringify(saveSlots));
+    if (saveSlots.length > 0) {
+      localStorage.setItem(`quiz-${quizId}-saves`, JSON.stringify(saveSlots));
+    } else {
+      localStorage.removeItem(`quiz-${quizId}-saves`);
+    }
   }, [saveSlots, quizId]);
 
   // Create a new save
@@ -117,11 +115,9 @@ export function useSaveSystem({
       }
 
       console.log('New slots after save:', newSlots);
-      // Force localStorage update
-      localStorage.setItem(`quiz-${quizId}-saves`, JSON.stringify(newSlots));
       return newSlots;
     });
-  }, [maxManualSlots, quizId]);
+  }, [maxManualSlots]);
 
   // Delete a save
   const deleteSave = useCallback((id: string) => {
@@ -134,35 +130,21 @@ export function useSaveSystem({
       let newSlots;
       if (slot?.isAutosave) {
         console.log('Deleting autosave - clearing all saves');
-        localStorage.removeItem(`quiz-${quizId}-saves`);
         newSlots = [];
       } else {
         newSlots = prev.filter(slot => slot.id !== id);
         console.log('Filtered slots after delete:', newSlots);
-        // Update localStorage immediately
-        localStorage.setItem(`quiz-${quizId}-saves`, JSON.stringify(newSlots));
       }
-
-      // Force a check for saves after a short delay
-      setTimeout(() => {
-        checkForSaves();
-      }, 100);
 
       return newSlots;
     });
-  }, [quizId, checkForSaves]);
+  }, []);
 
   // Clear all saves
   const clearAllSaves = useCallback(() => {
     console.log('Clearing all saves for quiz:', quizId);
-    localStorage.removeItem(`quiz-${quizId}-saves`);
     setSaveSlots([]);
-    
-    // Force a check for saves after clearing
-    setTimeout(() => {
-      checkForSaves();
-    }, 100);
-  }, [quizId, checkForSaves]);
+  }, []);
 
   // Load a save
   const loadSave = useCallback((id: string) => {
@@ -204,13 +186,14 @@ export function useSaveSystem({
 
     return () => clearInterval(intervalId);
   }, [autoSaveInterval, createSave, quizId]);
-return {
-  saveSlots,
-  createSave,
-  deleteSave,
-  loadSave,
-  setupAutosave,
-  clearAllSaves,
-  checkForSaves
-};
+
+  return {
+    saveSlots,
+    createSave,
+    deleteSave,
+    loadSave,
+    setupAutosave,
+    clearAllSaves,
+    checkForSaves
+  };
 }
