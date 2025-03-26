@@ -119,7 +119,7 @@ export function HomePage({ quizzes, setQuizzes }: HomePageProps) {
   };
 
   const copyPromptToClipboard = () => {
-    const promptText = `DO NOT PROVIDE RESPONSE IN CODE BLOCKS.
+    const promptText = ` DO NOT PROVIDE RESPONSE IN CODE BLOCKS.
     
 Rewrite all of these questions in the PDF into this specified format.
 
@@ -160,7 +160,7 @@ You should not other fields in the JSON. These are all the fields that you can a
 
 Make sure that you use the formatting and table and add statements from questions, formats and the headings and spacing correctly.
  
-
+THE ONLY THING THAT MATTERS IS THE USER FRIENDLINESS AND THE PRESENCE OF ALL THE INFORMATION IN CORRECT FORMAT DO NOT SKIP TABLES IN QUESTIONS WITH IMAGES, MAYBE THE TEXT ABOVE THE IMAGE IN INTERFERING WITH THE SYNTAX, BUT USE YOUR MIND, WHERE THE QUESTION SEEMS INCOMPLETE PROVIDE WITH THE REMAINING PART, DON'T MISS ANYTHING, IF THE QUESTION IS ASKING DETAILS ABOUT THE TABLE, AND THERE IS NO TABLE THEN YOU FAILED TO DO YOUR JOB, PROVIDE WITH ALL THE INFORMATION,
 
  here is the JSON format, strictly follow this format only :
     
@@ -241,7 +241,7 @@ d. अपरदन - 2. आगासीज, (add more explanation for this here,
         "shuffleQuestions": false
       }
     } 
-      
+      THE ONLY THING THAT MATTERS IS THE USER FRIENDLINESS AND THE PRESENCE OF ALL THE INFORMATION IN CORRECT FORMAT DO NOT SKIP TABLES IN QUESTIONS WITH IMAGES, MAYBE THE TEXT ABOVE THE IMAGE IN INTERFERING WITH THE SYNTAX, BUT USE YOUR MIND, WHERE THE QUESTION SEEMS INCOMPLETE PROVIDE WITH THE REMAINING PART, DON'T MISS ANYTHING, IF THE QUESTION IS ASKING DETAILS ABOUT THE TABLE, AND THERE IS NO TABLE THEN YOU FAILED TO DO YOUR JOB, PROVIDE WITH ALL THE INFORMATION,
     DO NOT PROVIDE RESPONSE IN CODE BLOCKS`;
     navigator.clipboard.writeText(promptText);
     toast.success("Prompt copied to clipboard!");
