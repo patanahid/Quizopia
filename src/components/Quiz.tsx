@@ -23,8 +23,24 @@ import { CodeBlock } from "@/components/ui/code-block";
 import { useSaveSystem } from "@/hooks/useSaveSystem";
 import { SaveSlotDialog } from "./SaveSlotDialog";
 import { Badge } from "@/components/ui/badge";
+import { extractBase64Images, getImageSrc } from "@/utils/imageUtils";
 
-const markdownComponents: Components = {
+// Create a custom hook to handle extracting images
+function useExtractedImages(text: string) {
+  const [processedData, setProcessedData] = useState<{
+    text: string;
+    images: Record<string, string>;
+  }>({ text: "", images: {} });
+
+  useEffect(() => {
+    const extracted = extractBase64Images(text);
+    setProcessedData(extracted);
+  }, [text]);
+
+  return processedData;
+}
+
+const createMarkdownComponents = (images: Record<string, string>): Components => ({
   pre: ({ children }) => (
     <CodeBlock 
       code={String(children)}
@@ -45,7 +61,22 @@ const markdownComponents: Components = {
       </code>
     );
   },
-};
+  img: ({ src, alt, ...props }) => {
+    // Use the utility function to get the actual image source
+    const actualSrc = getImageSrc(src, images);
+    
+    return (
+      <img 
+        src={actualSrc} 
+        alt={alt || "Quiz image"} 
+        className="max-w-full rounded-md my-3"
+        style={{ maxHeight: "500px" }}
+        loading="lazy"
+        {...props}
+      />
+    );
+  },
+});
 
 interface QuizProps {
   quiz: Quiz;
@@ -490,6 +521,12 @@ export function Quiz({ quiz, onComplete, onStateUpdate, initialState }: QuizProp
   };
 
   const currentQuestion = quiz.questions[state.currentQuestionIndex];
+  
+  // Extract base64 images from the current question
+  const questionData = useExtractedImages(currentQuestion?.text || "");
+
+  // Create markdown components with the extracted images
+  const markdownComponents = createMarkdownComponents(questionData.images);
 
   useEffect(() => {
     console.log('Time Remaining:', state.timeRemaining);
@@ -613,52 +650,57 @@ export function Quiz({ quiz, onComplete, onStateUpdate, initialState }: QuizProp
                   rehypePlugins={[rehypeRaw]}
                   components={markdownComponents}
                 >
-                  {currentQuestion.text}
+                  {questionData.text}
                 </Markdown>
               </div>
 
               <div className="space-y-3">
-                {currentQuestion.choices.map((choice) => (
-                  <div
-                    key={choice.id}
-                    onClick={() => handleAnswer(choice.id)}
-                    className={cn(
-                      "flex items-start space-x-3 p-4 rounded-lg border cursor-pointer transition-colors",
-                      {
-                        "bg-primary/5 border-primary": state.answers[currentQuestion.id] === choice.id,
-                        "hover:bg-muted": state.answers[currentQuestion.id] !== choice.id,
-                      }
-                    )}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        handleAnswer(choice.id);
-                      }
-                    }}
-                  >
-                    <div className={cn(
-                      "w-5 h-5 mt-1 rounded-full border-2 flex-shrink-0",
-                      state.answers[currentQuestion.id] === choice.id
-                        ? "border-primary bg-primary"
-                        : "border-muted-foreground"
-                    )}>
-                      {state.answers[currentQuestion.id] === choice.id && (
-                        <div className="w-2.5 h-2.5 m-0.5 rounded-full bg-white" />
+                {currentQuestion.choices.map((choice) => {
+                  // Extract base64 images from choice text
+                  const choiceData = useExtractedImages(choice.text);
+                  
+                  return (
+                    <div
+                      key={choice.id}
+                      onClick={() => handleAnswer(choice.id)}
+                      className={cn(
+                        "flex items-start space-x-3 p-4 rounded-lg border cursor-pointer transition-colors",
+                        {
+                          "bg-primary/5 border-primary": state.answers[currentQuestion.id] === choice.id,
+                          "hover:bg-muted": state.answers[currentQuestion.id] !== choice.id,
+                        }
                       )}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          handleAnswer(choice.id);
+                        }
+                      }}
+                    >
+                      <div className={cn(
+                        "w-5 h-5 mt-1 rounded-full border-2 flex-shrink-0",
+                        state.answers[currentQuestion.id] === choice.id
+                          ? "border-primary bg-primary"
+                          : "border-muted-foreground"
+                      )}>
+                        {state.answers[currentQuestion.id] === choice.id && (
+                          <div className="w-2.5 h-2.5 m-0.5 rounded-full bg-white" />
+                        )}
+                      </div>
+                      <div className="prose dark:prose-invert flex-1 [&>p]:m-0">
+                        <Markdown
+                          remarkPlugins={[remarkGfm]}
+                          rehypePlugins={[rehypeRaw]}
+                          components={createMarkdownComponents(choiceData.images)}
+                        >
+                          {choiceData.text}
+                        </Markdown>
+                      </div>
                     </div>
-                    <div className="prose dark:prose-invert flex-1 [&>p]:m-0">
-                      <Markdown
-                        remarkPlugins={[remarkGfm]}
-                        rehypePlugins={[rehypeRaw]}
-                        components={markdownComponents}
-                      >
-                        {choice.text}
-                      </Markdown>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </CardContent>
             <CardFooter className="flex justify-between pt-4">

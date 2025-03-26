@@ -18,7 +18,7 @@ import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import type { Components } from "react-markdown";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CodeBlock } from "@/components/ui/code-block";
 import {
   Select,
@@ -27,8 +27,61 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { extractBase64Images, getImageSrc } from "@/utils/imageUtils";
 
 type FilterType = "all" | "correct" | "incorrect" | "marked" | "not-attempted";
+
+// Create a custom hook to handle extracting images
+function useExtractedImages(text: string) {
+  const [processedData, setProcessedData] = useState<{
+    text: string;
+    images: Record<string, string>;
+  }>({ text: "", images: {} });
+
+  useEffect(() => {
+    const extracted = extractBase64Images(text);
+    setProcessedData(extracted);
+  }, [text]);
+
+  return processedData;
+}
+
+// Function to create markdown components with extracted images
+const createMarkdownComponents = (images: Record<string, string>): Components => ({
+  pre: ({ children }) => (
+    <pre className="p-4 bg-muted rounded-lg overflow-x-auto">
+      {children}
+    </pre>
+  ),
+  code: ({ className, children, ...props }) => {
+    const match = /language-(\w+)/.exec(className || "");
+    const isInline = !match && !className;
+    return (
+      <code
+        className={`${className} ${isInline ? "bg-muted px-1 py-0.5 rounded" : ""
+          }`}
+        {...props}
+      >
+        {children}
+      </code>
+    );
+  },
+  img: ({ src, alt, ...props }) => {
+    // Use the utility function to get the actual image source
+    const actualSrc = getImageSrc(src, images);
+    
+    return (
+      <img 
+        src={actualSrc} 
+        alt={alt || "Quiz image"} 
+        className="max-w-full rounded-md my-3"
+        style={{ maxHeight: "500px" }}
+        loading="lazy"
+        {...props}
+      />
+    );
+  },
+});
 
 interface ResultsProps {
   quiz: Quiz;
@@ -128,27 +181,6 @@ export function Results({ quiz, state, onRetry }: ResultsProps) {
 
   const filteredQuestions = filterQuestions();
 
-  const markdownComponents: Components = {
-    pre: ({ children }) => (
-      <pre className="p-4 bg-muted rounded-lg overflow-x-auto">
-        {children}
-      </pre>
-    ),
-    code: ({ className, children, ...props }) => {
-      const match = /language-(\w+)/.exec(className || "");
-      const isInline = !match && !className;
-      return (
-        <code
-          className={`${className} ${isInline ? "bg-muted px-1 py-0.5 rounded" : ""
-            }`}
-          {...props}
-        >
-          {children}
-        </code>
-      );
-    },
-  };
-
   return (
     <div className="container mx-auto p-4 max-w-4xl space-y-6 animate-fade-in">
       {/* Summary Card */}
@@ -239,6 +271,10 @@ export function Results({ quiz, state, onRetry }: ResultsProps) {
           const isCorrect = state.answers[question.id] === question.correctAnswer;
           const isMarked = state.markedForReview?.includes(question.id);
           const originalIndex = quiz.questions.findIndex(q => q.id === question.id);
+          
+          // Extract base64 images from question text
+          const questionData = useExtractedImages(question.text);
+          const questionMarkdownComponents = createMarkdownComponents(questionData.images);
 
           return (
             <Card key={question.id} className="p-4 bg-card text-card-foreground">
@@ -277,9 +313,9 @@ export function Results({ quiz, state, onRetry }: ResultsProps) {
                   <Markdown
                     remarkPlugins={[remarkGfm]}
                     rehypePlugins={[rehypeRaw]}
-                    components={markdownComponents}
+                    components={questionMarkdownComponents}
                   >
-                    {question.text}
+                    {questionData.text}
                   </Markdown>
                 </div>
 
@@ -288,6 +324,10 @@ export function Results({ quiz, state, onRetry }: ResultsProps) {
                     const isSelected = state.answers[question.id] === choice.id;
                     const isCorrectChoice = choice.id === question.correctAnswer;
                     const choiceLabel = String.fromCharCode(65 + choiceIndex);
+                    
+                    // Extract base64 images from choice text
+                    const choiceData = useExtractedImages(choice.text);
+                    const choiceMarkdownComponents = createMarkdownComponents(choiceData.images);
 
                     return (
                       <div
@@ -308,9 +348,9 @@ export function Results({ quiz, state, onRetry }: ResultsProps) {
                           <Markdown
                             remarkPlugins={[remarkGfm]}
                             rehypePlugins={[rehypeRaw]}
-                            components={markdownComponents}
+                            components={choiceMarkdownComponents}
                           >
-                            {choice.text}
+                            {choiceData.text}
                           </Markdown>
                         </div>
                       </div>
@@ -322,13 +362,21 @@ export function Results({ quiz, state, onRetry }: ResultsProps) {
                   <div className="mt-3 p-3 rounded-md bg-muted/50 text-sm">
                     <h4 className="font-medium mb-1">Explanation:</h4>
                     <div className="prose dark:prose-invert prose-sm">
-                      <Markdown
-                        remarkPlugins={[remarkGfm]}
-                        rehypePlugins={[rehypeRaw]}
-                        components={markdownComponents}
-                      >
-                        {question.explanation}
-                      </Markdown>
+                      {/* Extract base64 images from explanation text */}
+                      {(() => {
+                        const explanationData = useExtractedImages(question.explanation);
+                        const explanationMarkdownComponents = createMarkdownComponents(explanationData.images);
+                        
+                        return (
+                          <Markdown
+                            remarkPlugins={[remarkGfm]}
+                            rehypePlugins={[rehypeRaw]}
+                            components={explanationMarkdownComponents}
+                          >
+                            {explanationData.text}
+                          </Markdown>
+                        );
+                      })()}
                     </div>
                   </div>
                 )}

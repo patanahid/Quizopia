@@ -23,6 +23,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { CodeBlock } from "@/components/ui/code-block";
+import type { Components } from "react-markdown";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,6 +34,41 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { extractBase64Images, getImageSrc } from "@/utils/imageUtils";
+
+// Create a custom hook to handle extracting images
+function useExtractedImages(text: string) {
+  const [processedData, setProcessedData] = useState<{
+    text: string;
+    images: Record<string, string>;
+  }>({ text: "", images: {} });
+
+  useEffect(() => {
+    const extracted = extractBase64Images(text);
+    setProcessedData(extracted);
+  }, [text]);
+
+  return processedData;
+}
+
+// Function to create markdown components with extracted images
+const createMarkdownComponents = (images: Record<string, string>): Components => ({
+  img: ({ src, alt, ...props }) => {
+    // Use the utility function to get the actual image source
+    const actualSrc = getImageSrc(src, images);
+    
+    return (
+      <img 
+        src={actualSrc} 
+        alt={alt || "Quiz image"} 
+        className="max-w-full rounded-md my-3"
+        style={{ maxHeight: "500px" }}
+        loading="lazy"
+        {...props}
+      />
+    );
+  },
+});
 
 interface EditQuizProps {
   id?: string;
@@ -357,141 +393,169 @@ export function EditQuiz({ id, quizzes, setQuizzes, editQuiz }: EditQuizProps) {
       </Card>
 
       <div className="space-y-6">
-        {quiz.questions.map((question, index) => (
-          <Card key={question.id} className="p-6">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-medium">Question {index + 1}</h3>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => handleDeleteQuestion(question.id)}
-                >
-                  Delete Question
-                </Button>
-              </div>
+        {quiz.questions.map((question, index) => {
+          // Extract base64 images from question text for preview
+          const questionData = useExtractedImages(question.text);
+          const questionMarkdownComponents = createMarkdownComponents(questionData.images);
 
-              <div className="space-y-2">
-                <Label>Question Text (Supports Markdown)</Label>
-                <Tabs defaultValue="edit" className="w-full">
-                  <TabsList>
-                    <TabsTrigger value="edit">Edit</TabsTrigger>
-                    <TabsTrigger value="preview">Preview</TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="edit">
-                    <Textarea
-                      value={question.text}
-                      onChange={(e) =>
-                        handleQuestionChange(question.id, "text", e.target.value)
-                      }
-                      placeholder="Enter question text"
-                      className="min-h-[100px] font-mono"
-                    />
-                  </TabsContent>
-                  <TabsContent value="preview" className="rounded-lg border p-4">
-                    <div className={`markdown-body ${isDark ? 'markdown-dark' : ''}`}>
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {question.text || "*No content*"}
-                      </ReactMarkdown>
-                    </div>
-                  </TabsContent>
-                </Tabs>
-              </div>
-
+          return (
+            <Card key={question.id} className="p-6">
               <div className="space-y-4">
-                <Label>Choices</Label>
-                {question.choices.map((choice, choiceIndex) => (
-                  <div key={choice.id} className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <Label className="w-8">{String.fromCharCode(65 + choiceIndex)})</Label>
-                      <Tabs defaultValue="edit" className="w-full">
-                        <TabsList>
-                          <TabsTrigger value="edit">Edit</TabsTrigger>
-                          <TabsTrigger value="preview">Preview</TabsTrigger>
-                        </TabsList>
-                        <TabsContent value="edit">
-                          <Textarea
-                            value={choice.text}
-                            onChange={(e) =>
-                              setQuiz((prev) => ({
-                                ...prev,
-                                questions: prev.questions.map((q) =>
-                                  q.id === question.id
-                                    ? {
-                                        ...q,
-                                        choices: q.choices?.map((c) =>
-                                          c.id === choice.id
-                                            ? { ...c, text: e.target.value }
-                                            : c
-                                        ),
-                                      } as Quiz["questions"][number]
-                                    : q
-                                ),
-                              }))
-                            }
-                            placeholder={`Enter choice ${String.fromCharCode(65 + choiceIndex)}`}
-                            className="font-mono"
-                          />
-                        </TabsContent>
-                        <TabsContent value="preview" className="rounded-lg border p-4">
-                          <div className={`markdown-body ${isDark ? 'markdown-dark' : ''}`}>
-                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                              {choice.text || "*No content*"}
-                            </ReactMarkdown>
-                          </div>
-                        </TabsContent>
-                      </Tabs>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-medium">Question {index + 1}</h3>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => handleDeleteQuestion(question.id)}
+                  >
+                    Delete Question
+                  </Button>
+                </div>
 
-              <div className="space-y-2">
-                <Label>Correct Answer</Label>
-                <div className="flex gap-4">
-                  {question.choices.map((choice, choiceIndex) => (
-                    <Button
-                      key={choice.id}
-                      variant={question.correctAnswer === choice.id ? "default" : "outline"}
-                      onClick={() =>
-                        handleQuestionChange(question.id, "correctAnswer", choice.id)
-                      }
-                    >
-                      {String.fromCharCode(65 + choiceIndex)}
-                    </Button>
-                  ))}
+                <div className="space-y-2">
+                  <Label>Question Text (Supports Markdown)</Label>
+                  <Tabs defaultValue="edit" className="w-full">
+                    <TabsList>
+                      <TabsTrigger value="edit">Edit</TabsTrigger>
+                      <TabsTrigger value="preview">Preview</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="edit">
+                      <Textarea
+                        value={question.text}
+                        onChange={(e) =>
+                          handleQuestionChange(question.id, "text", e.target.value)
+                        }
+                        placeholder="Enter question text"
+                        className="min-h-[100px] font-mono"
+                      />
+                    </TabsContent>
+                    <TabsContent value="preview" className="rounded-lg border p-4">
+                      <div className={`markdown-body ${isDark ? 'markdown-dark' : ''}`}>
+                        <ReactMarkdown 
+                          remarkPlugins={[remarkGfm]} 
+                          components={questionMarkdownComponents}
+                        >
+                          {questionData.text || "*No content*"}
+                        </ReactMarkdown>
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+                </div>
+
+                <div className="space-y-4">
+                  <Label>Choices</Label>
+                  {question.choices.map((choice, choiceIndex) => {
+                    // Extract base64 images from choice text for preview
+                    const choiceData = useExtractedImages(choice.text);
+                    const choiceMarkdownComponents = createMarkdownComponents(choiceData.images);
+
+                    return (
+                      <div key={choice.id} className="space-y-2">
+                        <div className="flex items-center space-x-2">
+                          <Label className="w-8">{String.fromCharCode(65 + choiceIndex)})</Label>
+                          <Tabs defaultValue="edit" className="w-full">
+                            <TabsList>
+                              <TabsTrigger value="edit">Edit</TabsTrigger>
+                              <TabsTrigger value="preview">Preview</TabsTrigger>
+                            </TabsList>
+                            <TabsContent value="edit">
+                              <Textarea
+                                value={choice.text}
+                                onChange={(e) =>
+                                  setQuiz((prev) => ({
+                                    ...prev,
+                                    questions: prev.questions.map((q) =>
+                                      q.id === question.id
+                                        ? {
+                                            ...q,
+                                            choices: q.choices?.map((c) =>
+                                              c.id === choice.id
+                                                ? { ...c, text: e.target.value }
+                                                : c
+                                            ),
+                                          } as Quiz["questions"][number]
+                                        : q
+                                    ),
+                                  }))
+                                }
+                                placeholder={`Enter choice ${String.fromCharCode(65 + choiceIndex)}`}
+                                className="font-mono"
+                              />
+                            </TabsContent>
+                            <TabsContent value="preview" className="rounded-lg border p-4">
+                              <div className={`markdown-body ${isDark ? 'markdown-dark' : ''}`}>
+                                <ReactMarkdown 
+                                  remarkPlugins={[remarkGfm]} 
+                                  components={choiceMarkdownComponents}
+                                >
+                                  {choiceData.text || "*No content*"}
+                                </ReactMarkdown>
+                              </div>
+                            </TabsContent>
+                          </Tabs>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Correct Answer</Label>
+                  <div className="flex gap-4">
+                    {question.choices.map((choice, choiceIndex) => (
+                      <Button
+                        key={choice.id}
+                        variant={question.correctAnswer === choice.id ? "default" : "outline"}
+                        onClick={() =>
+                          handleQuestionChange(question.id, "correctAnswer", choice.id)
+                        }
+                      >
+                        {String.fromCharCode(65 + choiceIndex)}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Explanation (Supports Markdown)</Label>
+                  <Tabs defaultValue="edit" className="w-full">
+                    <TabsList>
+                      <TabsTrigger value="edit">Edit</TabsTrigger>
+                      <TabsTrigger value="preview">Preview</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="edit">
+                      <Textarea
+                        value={question.explanation}
+                        onChange={(e) =>
+                          handleQuestionChange(question.id, "explanation", e.target.value)
+                        }
+                        placeholder="Enter explanation"
+                        className="min-h-[100px] font-mono"
+                      />
+                    </TabsContent>
+                    <TabsContent value="preview" className="rounded-lg border p-4">
+                      <div className={`markdown-body ${isDark ? 'markdown-dark' : ''}`}>
+                        {(() => {
+                          const explanationData = useExtractedImages(question.explanation);
+                          const explanationMarkdownComponents = createMarkdownComponents(explanationData.images);
+                          
+                          return (
+                            <ReactMarkdown 
+                              remarkPlugins={[remarkGfm]} 
+                              components={explanationMarkdownComponents}
+                            >
+                              {explanationData.text || "*No content*"}
+                            </ReactMarkdown>
+                          );
+                        })()}
+                      </div>
+                    </TabsContent>
+                  </Tabs>
                 </div>
               </div>
-
-              <div className="space-y-2">
-                <Label>Explanation (Supports Markdown)</Label>
-                <Tabs defaultValue="edit" className="w-full">
-                  <TabsList>
-                    <TabsTrigger value="edit">Edit</TabsTrigger>
-                    <TabsTrigger value="preview">Preview</TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="edit">
-                    <Textarea
-                      value={question.explanation}
-                      onChange={(e) =>
-                        handleQuestionChange(question.id, "explanation", e.target.value)
-                      }
-                      placeholder="Enter explanation"
-                      className="min-h-[100px] font-mono"
-                    />
-                  </TabsContent>
-                  <TabsContent value="preview" className="rounded-lg border p-4">
-                    <div className={`markdown-body ${isDark ? 'markdown-dark' : ''}`}>
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {question.explanation || "*No content*"}
-                      </ReactMarkdown>
-                    </div>
-                  </TabsContent>
-                </Tabs>
-              </div>
-            </div>
-          </Card>
-        ))}
+            </Card>
+          );
+        })}
 
         <Button
           onClick={() =>
