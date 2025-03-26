@@ -119,7 +119,9 @@ export function HomePage({ quizzes, setQuizzes }: HomePageProps) {
   };
 
   const copyPromptToClipboard = () => {
-    const promptText = `I rewrite all of these questions in the PDF into this specified format.
+    const promptText = `DO NOT PROVIDE RESPONSE IN CODE BLOCKS.
+    
+Rewrite all of these questions in the PDF into this specified format.
 
 Make sure that you add the answers from the answer key. If you think that the answers in the answer key are wrong, use your mind and your knowledge to analyze that. And if you think there are conflicts between you and the answer key, then specify both. But in the correctAnswer field, you should use the option from the answer key. But in the explanation, you should provide that the answer key was stating that option, but you think that the correct answer is this.
 
@@ -150,7 +152,7 @@ DO NOT write questions that you are not provided with and DO NOT guess questions
 
 Make sure that you don't skip any part of the JSON format and everything should be syntactically correct and it should not and shall not have errors at any cost.
 
-use single quotes, in the text fields to remove syntax errors with double quotes in JSON formatting.
+use single quotes, in the text fields to remove syntax errors with double quotes in JSON formatting. 
 
 The time should be 3 hours (10800).
 
@@ -238,7 +240,9 @@ d. अपरदन - 2. आगासीज, (add more explanation for this here,
         "timeLimit": 10800,
         "shuffleQuestions": false
       }
-    }`;
+    } 
+      
+    DO NOT PROVIDE RESPONSE IN CODE BLOCKS`;
     navigator.clipboard.writeText(promptText);
     toast.success("Prompt copied to clipboard!");
   };
