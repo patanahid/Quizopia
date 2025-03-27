@@ -70,6 +70,23 @@ const createMarkdownComponents = (images: Record<string, string>): Components =>
   },
 });
 
+// Separate component for markdown preview to avoid hooks inside loops
+const MarkdownPreview = ({ content, isDark }: { content: string; isDark: boolean }) => {
+  const data = useExtractedImages(content);
+  const markdownComponents = createMarkdownComponents(data.images);
+  
+  return (
+    <div className={`markdown-body ${isDark ? 'markdown-dark' : ''}`}>
+      <ReactMarkdown 
+        remarkPlugins={[remarkGfm]} 
+        components={markdownComponents}
+      >
+        {data.text || "*No content*"}
+      </ReactMarkdown>
+    </div>
+  );
+};
+
 interface EditQuizProps {
   id?: string;
   quizzes: Quiz[];
@@ -82,7 +99,7 @@ export function EditQuiz({ id, quizzes, setQuizzes, editQuiz }: EditQuizProps) {
   const [desiredQuestionCount, setDesiredQuestionCount] = useState<number>(0);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [questionToDelete, setQuestionToDelete] = useState<string | null>(null);
-  const [isDark, setIsDark] = useState(document.documentElement.classList.contains('dark'));
+  const [isDark, setIsDark] = useState(false);
 
   const [quiz, setQuiz] = useState<Quiz>({
     id: "",
@@ -103,20 +120,39 @@ export function EditQuiz({ id, quizzes, setQuizzes, editQuiz }: EditQuizProps) {
   }, [editQuiz]);
 
   useEffect(() => {
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.attributeName === 'class') {
-          setIsDark(document.documentElement.classList.contains('dark'));
-        }
+    // Make sure we're in the browser environment before accessing document
+    if (typeof document === 'undefined') return;
+    
+    // Set initial dark mode state
+    setIsDark(document.documentElement.classList.contains('dark'));
+    
+    // Setup observer for theme changes
+    try {
+      const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+          if (mutation.attributeName === 'class') {
+            setIsDark(document.documentElement.classList.contains('dark'));
+          }
+        });
       });
-    });
 
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['class'],
-    });
+      observer.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class'],
+      });
 
-    return () => observer.disconnect();
+      return () => observer.disconnect();
+    } catch (error) {
+      console.error("Error setting up MutationObserver:", error);
+      // Fallback method if MutationObserver fails
+      const handleClassChange = () => {
+        setIsDark(document.documentElement.classList.contains('dark'));
+      };
+      
+      // Check periodically for theme changes as a fallback
+      const interval = setInterval(handleClassChange, 1000);
+      return () => clearInterval(interval);
+    }
   }, []);
 
   const handleQuestionCountChange = (count: number) => {
@@ -394,10 +430,6 @@ export function EditQuiz({ id, quizzes, setQuizzes, editQuiz }: EditQuizProps) {
 
       <div className="space-y-6">
         {quiz.questions.map((question, index) => {
-          // Extract base64 images from question text for preview
-          const questionData = useExtractedImages(question.text);
-          const questionMarkdownComponents = createMarkdownComponents(questionData.images);
-
           return (
             <Card key={question.id} className="p-6">
               <div className="space-y-4">
@@ -430,73 +462,53 @@ export function EditQuiz({ id, quizzes, setQuizzes, editQuiz }: EditQuizProps) {
                       />
                     </TabsContent>
                     <TabsContent value="preview" className="rounded-lg border p-4">
-                      <div className={`markdown-body ${isDark ? 'markdown-dark' : ''}`}>
-                        <ReactMarkdown 
-                          remarkPlugins={[remarkGfm]} 
-                          components={questionMarkdownComponents}
-                        >
-                          {questionData.text || "*No content*"}
-                        </ReactMarkdown>
-                      </div>
+                      <MarkdownPreview content={question.text} isDark={isDark} />
                     </TabsContent>
                   </Tabs>
                 </div>
 
                 <div className="space-y-4">
                   <Label>Choices</Label>
-                  {question.choices.map((choice, choiceIndex) => {
-                    // Extract base64 images from choice text for preview
-                    const choiceData = useExtractedImages(choice.text);
-                    const choiceMarkdownComponents = createMarkdownComponents(choiceData.images);
-
-                    return (
-                      <div key={choice.id} className="space-y-2">
-                        <div className="flex items-center space-x-2">
-                          <Label className="w-8">{String.fromCharCode(65 + choiceIndex)})</Label>
-                          <Tabs defaultValue="edit" className="w-full">
-                            <TabsList>
-                              <TabsTrigger value="edit">Edit</TabsTrigger>
-                              <TabsTrigger value="preview">Preview</TabsTrigger>
-                            </TabsList>
-                            <TabsContent value="edit">
-                              <Textarea
-                                value={choice.text}
-                                onChange={(e) =>
-                                  setQuiz((prev) => ({
-                                    ...prev,
-                                    questions: prev.questions.map((q) =>
-                                      q.id === question.id
-                                        ? {
-                                            ...q,
-                                            choices: q.choices?.map((c) =>
-                                              c.id === choice.id
-                                                ? { ...c, text: e.target.value }
-                                                : c
-                                            ),
-                                          } as Quiz["questions"][number]
-                                        : q
-                                    ),
-                                  }))
-                                }
-                                placeholder={`Enter choice ${String.fromCharCode(65 + choiceIndex)}`}
-                                className="font-mono"
-                              />
-                            </TabsContent>
-                            <TabsContent value="preview" className="rounded-lg border p-4">
-                              <div className={`markdown-body ${isDark ? 'markdown-dark' : ''}`}>
-                                <ReactMarkdown 
-                                  remarkPlugins={[remarkGfm]} 
-                                  components={choiceMarkdownComponents}
-                                >
-                                  {choiceData.text || "*No content*"}
-                                </ReactMarkdown>
-                              </div>
-                            </TabsContent>
-                          </Tabs>
-                        </div>
+                  {question.choices.map((choice, choiceIndex) => (
+                    <div key={choice.id} className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <Label className="w-8">{String.fromCharCode(65 + choiceIndex)})</Label>
+                        <Tabs defaultValue="edit" className="w-full">
+                          <TabsList>
+                            <TabsTrigger value="edit">Edit</TabsTrigger>
+                            <TabsTrigger value="preview">Preview</TabsTrigger>
+                          </TabsList>
+                          <TabsContent value="edit">
+                            <Textarea
+                              value={choice.text}
+                              onChange={(e) =>
+                                setQuiz((prev) => ({
+                                  ...prev,
+                                  questions: prev.questions.map((q) =>
+                                    q.id === question.id
+                                      ? {
+                                          ...q,
+                                          choices: q.choices?.map((c) =>
+                                            c.id === choice.id
+                                              ? { ...c, text: e.target.value }
+                                              : c
+                                          ),
+                                        } as Quiz["questions"][number]
+                                      : q
+                                  ),
+                                }))
+                              }
+                              placeholder={`Enter choice ${String.fromCharCode(65 + choiceIndex)}`}
+                              className="font-mono"
+                            />
+                          </TabsContent>
+                          <TabsContent value="preview" className="rounded-lg border p-4">
+                            <MarkdownPreview content={choice.text} isDark={isDark} />
+                          </TabsContent>
+                        </Tabs>
                       </div>
-                    );
-                  })}
+                    </div>
+                  ))}
                 </div>
 
                 <div className="space-y-2">
@@ -534,21 +546,7 @@ export function EditQuiz({ id, quizzes, setQuizzes, editQuiz }: EditQuizProps) {
                       />
                     </TabsContent>
                     <TabsContent value="preview" className="rounded-lg border p-4">
-                      <div className={`markdown-body ${isDark ? 'markdown-dark' : ''}`}>
-                        {(() => {
-                          const explanationData = useExtractedImages(question.explanation);
-                          const explanationMarkdownComponents = createMarkdownComponents(explanationData.images);
-                          
-                          return (
-                            <ReactMarkdown 
-                              remarkPlugins={[remarkGfm]} 
-                              components={explanationMarkdownComponents}
-                            >
-                              {explanationData.text || "*No content*"}
-                            </ReactMarkdown>
-                          );
-                        })()}
-                      </div>
+                      <MarkdownPreview content={question.explanation} isDark={isDark} />
                     </TabsContent>
                   </Tabs>
                 </div>

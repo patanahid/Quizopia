@@ -166,8 +166,8 @@ The time should be 3 hours (10800).
 
 You should not other fields in the JSON. These are all the fields that you can and should use.
 
-Make sure that you use the formatting and table and add statements from questions, formats and the headings and spacing correctly.
- 
+Make sure that you use the formatting and table and add statements from questions, formats and the headings and spacing correctly. 
+
 THE ONLY THING THAT MATTERS IS THE USER FRIENDLINESS AND THE PRESENCE OF ALL THE INFORMATION IN CORRECT FORMAT DO NOT SKIP TABLES IN QUESTIONS WITH IMAGES, MAYBE THE TEXT ABOVE THE IMAGE IN INTERFERING WITH THE SYNTAX, BUT USE YOUR MIND, WHERE THE QUESTION SEEMS INCOMPLETE PROVIDE WITH THE REMAINING PART, DON'T MISS ANYTHING, IF THE QUESTION IS ASKING DETAILS ABOUT THE TABLE, AND THERE IS NO TABLE THEN YOU FAILED TO DO YOUR JOB, PROVIDE WITH ALL THE INFORMATION,
 
  here is the JSON format, strictly follow this format only :
@@ -440,9 +440,9 @@ d. अपरदन - 2. आगासीज, (add more explanation for this here,
         </div>
       </div>
 
-      {/* Improved search and filter section */}
-      <div className="flex flex-col gap-3 mb-6">
-        <div className="relative w-full">
+      {/* Search, sort and clear data in a single row */}
+      <div className="flex items-center gap-2 mb-6">
+        <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" aria-hidden="true" />
           <Input
             type="text"
@@ -454,79 +454,83 @@ d. अपरदन - 2. आगासीज, (add more explanation for this here,
           />
         </div>
         
-        <div className="flex gap-2">
-          <Select
-            value={sortOrder}
-            onValueChange={(value: "asc" | "desc") => setSortOrder(value)}
-            aria-label="Sort order"
-          >
-            <SelectTrigger className="flex-1">
-              <SelectValue placeholder="Sort order" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="asc">Title (A-Z)</SelectItem>
-              <SelectItem value="desc">Title (Z-A)</SelectItem>
-            </SelectContent>
-          </Select>
+        <Select
+          value={sortOrder}
+          onValueChange={(value: "asc" | "desc") => setSortOrder(value)}
+          aria-label="Sort order"
+        >
+          <SelectTrigger className="w-[130px] hidden sm:flex">
+            <SelectValue placeholder="Sort order" />
+          </SelectTrigger>
+          <SelectTrigger className="w-[42px] sm:hidden p-0 justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-arrow-up-down">
+              <path d="m21 16-4 4-4-4"/>
+              <path d="M17 20V4"/>
+              <path d="m3 8 4-4 4 4"/>
+              <path d="M7 4v16"/>
+            </svg>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="asc">Title (A-Z)</SelectItem>
+            <SelectItem value="desc">Title (Z-A)</SelectItem>
+          </SelectContent>
+        </Select>
 
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive" size="icon" className="md:hidden" aria-label="Clear all quiz data">
-                <Eraser className="h-4 w-4" />
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This action will permanently delete all your quizzes and saved progress.
-                  This action cannot be undone.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={() => {
-                    window.localStorage.clear();
-                    setQuizzes([]);
-                    toast.success("All data cleared successfully");
-                  }}
-                >
-                  Clear All Data
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="destructive" size="icon" className="sm:hidden h-10 w-10" aria-label="Clear all quiz data">
+              <Eraser className="h-4 w-4" />
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action will permanently delete all your quizzes and saved progress.
+                This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  window.localStorage.clear();
+                  setQuizzes([]);
+                  toast.success("All data cleared successfully");
+                }}
+              >
+                Clear All Data
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
         
-        <div className="hidden md:block">
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive" className="w-full" aria-label="Clear all quiz data">Clear All Data</Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This action will permanently delete all your quizzes and saved progress.
-                  This action cannot be undone.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={() => {
-                    window.localStorage.clear();
-                    setQuizzes([]);
-                    toast.success("All data cleared successfully");
-                  }}
-                >
-                  Clear All Data
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="destructive" className="hidden sm:flex whitespace-nowrap" aria-label="Clear all quiz data">Clear All Data</Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action will permanently delete all your quizzes and saved progress.
+                This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  window.localStorage.clear();
+                  setQuizzes([]);
+                  toast.success("All data cleared successfully");
+                }}
+              >
+                Clear All Data
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
 
       {/* Quiz grid with improved mobile layout */}
@@ -540,60 +544,59 @@ d. अपरदन - 2. आगासीज, (add more explanation for this here,
             {filteredQuizzes.map((quiz) => (
               <div
                 key={quiz.id}
-                className="bg-card p-5 rounded-lg shadow-sm border border-border relative group"
+                className="bg-card p-4 rounded-lg shadow-sm border border-border flex flex-col h-full"
                 role="article"
                 aria-labelledby={`quiz-title-${quiz.id}`}
               >
-                <div className="md:absolute md:top-4 md:right-4 flex gap-2 justify-end mb-2 md:mb-0">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
-                    onClick={() => handleJsonEdit(quiz)}
-                    aria-label={`Edit ${quiz.title} in JSON format`}
+                {/* Card header with title and description */}
+                <div className="flex-1 mb-4">
+                  <h2 
+                    id={`quiz-title-${quiz.id}`} 
+                    className="text-lg font-semibold tracking-tight line-clamp-1"
                   >
-                    <Code className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
-                    onClick={() => handleEditQuiz(quiz)}
-                    aria-label={`Edit ${quiz.title}`}
+                    {quiz.title}
+                  </h2>
+                  <p 
+                    className="text-sm text-muted-foreground mt-1 line-clamp-2" 
+                    id={`quiz-desc-${quiz.id}`}
                   >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="h-4 w-4"
-                      aria-hidden="true"
-                    >
-                      <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
-                      <path d="m15 5 4 4" />
-                    </svg>
-                  </Button>
+                    {quiz.description}
+                  </p>
                 </div>
 
-                <div className="space-y-3">
-                  <div>
-                    <h2 id={`quiz-title-${quiz.id}`} className="text-xl font-semibold tracking-tight line-clamp-1">{quiz.title}</h2>
-                    <p className="text-sm text-muted-foreground mt-1 line-clamp-2" id={`quiz-desc-${quiz.id}`}>{quiz.description}</p>
-                  </div>
-
-                  {/* Mobile-optimized button layout */}
-                  <div className="grid grid-cols-2 md:flex md:flex-wrap items-center gap-2" role="group" aria-label="Quiz actions">
+                {/* Actions section */}
+                <div className="space-y-2">
+                  {/* Primary button - always visible */}
+                  <Button
+                    variant="default"
+                    className="w-full"
+                    onClick={() => navigate(`/quiz/${quiz.id}`)}
+                  >
+                    Start Quiz
+                  </Button>
+                  
+                  {/* Secondary actions */}
+                  <div className="grid grid-cols-2 gap-2">
                     <Button
-                      variant="default"
+                      variant="outline"
                       size="sm"
-                      className="col-span-2"
-                      onClick={() => navigate(`/quiz/${quiz.id}`)}
-                      aria-label={`Start ${quiz.title} quiz`}
+                      onClick={() => handleEditQuiz(quiz)}
+                      className="w-full"
                     >
-                      Start Quiz
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="h-4 w-4 mr-2"
+                      >
+                        <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                        <path d="m15 5 4 4" />
+                      </svg>
+                      Edit
                     </Button>
                     
                     <Sheet>
@@ -601,21 +604,18 @@ d. अपरदन - 2. आगासीज, (add more explanation for this here,
                         <Button
                           variant="outline"
                           size="sm"
-                          className="md:hidden"
+                          className="w-full"
                         >
-                          More Options
+                          <Menu className="h-4 w-4 mr-2" />
+                          More
                         </Button>
                       </SheetTrigger>
                       <SheetContent side="bottom" className="rounded-t-xl">
+                        <SheetHeader className="text-left mb-4">
+                          <SheetTitle>{quiz.title}</SheetTitle>
+                          <SheetDescription>Manage this quiz</SheetDescription>
+                        </SheetHeader>
                         <div className="grid gap-3 py-4">
-                          <Button
-                            variant="outline"
-                            className="w-full justify-start"
-                            onClick={() => handleClearSaves(quiz.id)}
-                          >
-                            <Eraser className="h-4 w-4 mr-2" />
-                            Clear Saved Progress
-                          </Button>
                           <Button
                             variant="outline"
                             className="w-full justify-start"
@@ -627,22 +627,10 @@ d. अपरदन - 2. आगासीज, (add more explanation for this here,
                           <Button
                             variant="outline"
                             className="w-full justify-start"
-                            onClick={() => handleEditQuiz(quiz)}
+                            onClick={() => handleClearSaves(quiz.id)}
                           >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              className="h-4 w-4 mr-2"
-                            >
-                              <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
-                              <path d="m15 5 4 4" />
-                            </svg>
-                            Edit Quiz
+                            <Eraser className="h-4 w-4 mr-2" />
+                            Clear Saved Progress
                           </Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
@@ -685,59 +673,6 @@ d. अपरदन - 2. आगासीज, (add more explanation for this here,
                         </div>
                       </SheetContent>
                     </Sheet>
-                    
-                    {/* Desktop action buttons (hidden on mobile) */}
-                    <div className="hidden md:flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => handleClearSaves(quiz.id)}
-                        aria-label={`Clear saved progress for ${quiz.title}`}
-                      >
-                        <Eraser className="h-4 w-4" aria-hidden="true" />
-                      </Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button 
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive hover:text-destructive/90"
-                            aria-label={`Delete ${quiz.title}`}
-                          >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              className="h-4 w-4"
-                              aria-hidden="true"
-                            >
-                              <path d="M3 6h18" />
-                              <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-                              <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-                            </svg>
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Delete Quiz</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Are you sure you want to delete {quiz.title}? This action cannot be undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleDelete(quiz.id)}>
-                              Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
                   </div>
                 </div>
               </div>
