@@ -18,7 +18,7 @@ import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import type { Components } from "react-markdown";
 import { cn } from "@/lib/utils";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { CodeBlock } from "@/components/ui/code-block";
 import {
   Select,
@@ -30,21 +30,6 @@ import {
 import { extractBase64Images, getImageSrc } from "@/utils/imageUtils";
 
 type FilterType = "all" | "correct" | "incorrect" | "marked" | "not-attempted";
-
-// Create a custom hook to handle extracting images
-function useExtractedImages(text: string) {
-  const [processedData, setProcessedData] = useState<{
-    text: string;
-    images: Record<string, string>;
-  }>({ text: "", images: {} });
-
-  useEffect(() => {
-    const extracted = extractBase64Images(text);
-    setProcessedData(extracted);
-  }, [text]);
-
-  return processedData;
-}
 
 // Function to create markdown components with extracted images
 const createMarkdownComponents = (images: Record<string, string>): Components => ({
@@ -82,6 +67,33 @@ const createMarkdownComponents = (images: Record<string, string>): Components =>
     );
   },
 });
+
+// Component to render markdown content with images
+function MarkdownWithImages({ content }: { content: string }) {
+  const [processedData, setProcessedData] = useState<{
+    text: string;
+    images: Record<string, string>;
+  }>({ text: "", images: {} });
+
+  useEffect(() => {
+    const extracted = extractBase64Images(content);
+    setProcessedData(extracted);
+  }, [content]);
+
+  const markdownComponents = useMemo(() => 
+    createMarkdownComponents(processedData.images),
+  [processedData.images]);
+
+  return (
+    <Markdown
+      remarkPlugins={[remarkGfm]}
+      rehypePlugins={[rehypeRaw]}
+      components={markdownComponents}
+    >
+      {processedData.text}
+    </Markdown>
+  );
+}
 
 interface ResultsProps {
   quiz: Quiz;
@@ -177,7 +189,6 @@ export function Results({ quiz, state, onRetry }: ResultsProps) {
       }
     });
   };
-
 
   const filteredQuestions = filterQuestions();
 
@@ -294,10 +305,6 @@ export function Results({ quiz, state, onRetry }: ResultsProps) {
           const isMarked = state.markedForReview?.includes(question.id);
           const originalIndex = quiz.questions.findIndex(q => q.id === question.id);
           
-          // Extract base64 images from question text
-          const questionData = useExtractedImages(question.text);
-          const questionMarkdownComponents = createMarkdownComponents(questionData.images);
-
           return (
             <Card key={question.id} className="p-4 bg-card text-card-foreground">
               <div className="space-y-3">
@@ -332,13 +339,7 @@ export function Results({ quiz, state, onRetry }: ResultsProps) {
                 </div>
 
                 <div className="prose dark:prose-invert max-w-none prose-sm">
-                  <Markdown
-                    remarkPlugins={[remarkGfm]}
-                    rehypePlugins={[rehypeRaw]}
-                    components={questionMarkdownComponents}
-                  >
-                    {questionData.text}
-                  </Markdown>
+                  <MarkdownWithImages content={question.text} />
                 </div>
 
                 <div className="space-y-2">
@@ -347,10 +348,6 @@ export function Results({ quiz, state, onRetry }: ResultsProps) {
                     const isCorrectChoice = choice.id === question.correctAnswer;
                     const choiceLabel = String.fromCharCode(65 + choiceIndex);
                     
-                    // Extract base64 images from choice text
-                    const choiceData = useExtractedImages(choice.text);
-                    const choiceMarkdownComponents = createMarkdownComponents(choiceData.images);
-
                     return (
                       <div
                         key={choice.id}
@@ -367,13 +364,7 @@ export function Results({ quiz, state, onRetry }: ResultsProps) {
                           {choiceLabel})
                         </span>
                         <div className="prose dark:prose-invert prose-sm flex-1">
-                          <Markdown
-                            remarkPlugins={[remarkGfm]}
-                            rehypePlugins={[rehypeRaw]}
-                            components={choiceMarkdownComponents}
-                          >
-                            {choiceData.text}
-                          </Markdown>
+                          <MarkdownWithImages content={choice.text} />
                         </div>
                       </div>
                     );
@@ -384,21 +375,7 @@ export function Results({ quiz, state, onRetry }: ResultsProps) {
                   <div className="mt-3 p-3 rounded-md bg-muted/50 text-sm">
                     <h4 className="font-medium mb-1">Explanation:</h4>
                     <div className="prose dark:prose-invert prose-sm">
-                      {/* Extract base64 images from explanation text */}
-                      {(() => {
-                        const explanationData = useExtractedImages(question.explanation);
-                        const explanationMarkdownComponents = createMarkdownComponents(explanationData.images);
-                        
-                        return (
-                          <Markdown
-                            remarkPlugins={[remarkGfm]}
-                            rehypePlugins={[rehypeRaw]}
-                            components={explanationMarkdownComponents}
-                          >
-                            {explanationData.text}
-                          </Markdown>
-                        );
-                      })()}
+                      <MarkdownWithImages content={question.explanation} />
                     </div>
                   </div>
                 )}
