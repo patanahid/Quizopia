@@ -211,6 +211,28 @@ export function Results({ quiz, state, onRetry }: ResultsProps) {
                 <span className="text-sm">{scoreDetails.notAttempted}</span>
               </div>
             </div>
+            <div className="flex items-center gap-2 mt-4">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Negative Marking:</span>
+                <span className="text-sm font-medium">{negativeMarks.toFixed(2)}</span>
+              </div>
+              <div className="flex gap-1">
+                <Button
+                  variant={negativeMarks === 0 ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setNegativeMarks(0)}
+                >
+                  Off
+                </Button>
+                <Button
+                  variant={negativeMarks === 1/3 ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setNegativeMarks(1/3)}
+                >
+                  1/3
+                </Button>
+              </div>
+            </div>
           </div>
 
           {/* Stats Section */}

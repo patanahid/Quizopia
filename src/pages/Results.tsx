@@ -274,18 +274,22 @@ export default function Results() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Quiz Title</TableHead>
-                  <TableHead>Date</TableHead>
+                  <TableHead className="hidden md:table-cell">Quiz Title</TableHead>
+                  <TableHead className="hidden md:table-cell">Date</TableHead>
                   <TableHead>Score</TableHead>
-                  <TableHead>Stats</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead className="hidden md:table-cell">Stats</TableHead>
+                  <TableHead className="w-[100px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {sortedResults.map((result) => (
-                  <TableRow key={result.id}>
-                    <TableCell className="font-medium">{result.quizTitle}</TableCell>
-                    <TableCell>
+                  <TableRow 
+                    key={result.id} 
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => navigate(`/results/${result.id}`)}
+                  >
+                    <TableCell className="font-medium hidden md:table-cell">{result.quizTitle}</TableCell>
+                    <TableCell className="hidden md:table-cell">
                       {format(result.timestamp, "MMM d, yyyy h:mm a")}
                     </TableCell>
                     <TableCell>
@@ -304,7 +308,7 @@ export default function Results() {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden md:table-cell">
                       <div className="flex items-center gap-4">
                         <div className="flex items-center gap-1 text-green-500">
                           <CheckCircle2 className="w-4 h-4" />
@@ -329,7 +333,10 @@ export default function Results() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => navigate(`/results/${result.id}`)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/results/${result.id}`);
+                          }}
                         >
                           <BarChart className="w-4 h-4 mr-1" />
                           Details
@@ -338,7 +345,10 @@ export default function Results() {
                           variant="outline"
                           size="sm"
                           className="text-destructive"
-                          onClick={() => handleDeleteResult(result.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteResult(result.id);
+                          }}
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
